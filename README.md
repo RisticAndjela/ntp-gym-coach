@@ -32,6 +32,6 @@
 
 5. Dodatne i napredne funkcionalnosti
   Od dodatnih funkcionalnosti implementiraću rad sa medijskim fajlovima, jedino dostupni u programskim treninzima, i analitiku u formi grafikona za praćenje progresa individualnih klijenata i vežbi koje izvode.
-  Što se tiče naprednih funkcionalnosti koristiću Docker kontejnere, i primenu mašinskog učenja za recommended kilažu ili broj ponavljanja. Kod ove funkcionalnosti ideja je praćenje vežbi iste kategorije klijenata, gde pri treniranju modela uzimam u obzir da li se menja kilaža, broj ponavljanja ili imamo stagnaciju. Takođe, pokušaću da uključim u tabelu za treniranje podataka i koliko je vremena prošlo između dva treninga. Za ML koristim znanje iz ORI-ja iz prethodnog semestra.
+  Što se tiče naprednih funkcionalnosti koristiću Docker kontejnere, i primenu mašinskog učenja za recommended kilažu ili broj ponavljanja. Kod ove funkcionalnosti ideja je praćenje vežbi iste kategorije klijenata, gde pri treniranju modela uzimam u obzir da li se menja kilaža, broj ponavljanja ili imamo stagnaciju. Takođe, pokušaću da uključim u tabelu za treniranje podataka i koliko je vremena prošlo između dva treninga.
 Baze podataka
 Svaki mikroservis poseduje sopstvenu bazu podataka, čime se obezbeđuje slaba sprega između servisa i nezavisnost u razvoju i skaliranju sistema.
