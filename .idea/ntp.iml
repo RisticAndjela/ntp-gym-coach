@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module type="EMPTY_MODULE" version="4">
+  <component name="NewModuleRootManager">
+    <content url="file://$MODULE_DIR$">
+      <sourceFolder url="file://$MODULE_DIR$/gym-coach-analytic-recomm/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/gym-coach-api-gateway/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/gym-coach-auth/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/gym-coach-program/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/gym-coach-training/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/gym-coach-user/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src" isTestSource="false" />
+      <excludeFolder url="file://$MODULE_DIR$/gym-coach-analytic-recomm/target" />
+      <excludeFolder url="file://$MODULE_DIR$/gym-coach-api-gateway/target" />
+      <excludeFolder url="file://$MODULE_DIR$/gym-coach-auth/target" />
+      <excludeFolder url="file://$MODULE_DIR$/gym-coach-program/target" />
+      <excludeFolder url="file://$MODULE_DIR$/gym-coach-training/target" />
+      <excludeFolder url="file://$MODULE_DIR$/gym-coach-user/target" />
+      <excludeFolder url="file://$MODULE_DIR$/target" />
+    </content>
+    <orderEntry type="inheritedJdk" />
+    <orderEntry type="sourceFolder" forTests="false" />
+  </component>
+</module>

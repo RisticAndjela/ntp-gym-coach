@@ -1,0 +1,9 @@
+[workspace]
+members = [
+    "gym-coach-analytic-recomm",
+    "gym-coach-training",
+    "gym-coach-api-gateway",
+    "gym-coach-auth",
+    "gym-coach-program",
+    "gym-coach-user"
+]
