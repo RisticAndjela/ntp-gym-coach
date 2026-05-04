@@ -1,0 +1,66 @@
+services:
+  auth:
+    build:
+      context: .
+      args:
+        SERVICE: auth
+        BIN: auth
+    ports:
+      - "8081:8081"
+
+  user:
+    build:
+      context: .
+      args:
+        SERVICE: ntp-gym-coach-user
+        BIN: ntp-gym-coach-user
+    ports:
+      - "8082:8082"
+
+  training:
+    build:
+      context: .
+      args:
+        SERVICE: training
+        BIN: training
+    ports:
+      - "8083:8083"
+
+  program:
+    build:
+      context: .
+      args:
+        SERVICE: program
+        BIN: program
+    ports:
+      - "8084:8084"
+
+  analytics:
+    build:
+      context: .
+      args:
+        SERVICE: analytic-recommendation
+        BIN: analytic-recommendation
+    ports:
+      - "8085:8085"
+
+  gateway:
+    build:
+      context: .
+      args:
+        SERVICE: api-gateway
+        BIN: api-gateway
+    environment:
+      AUTH_SERVICE_URL: http://auth:8081
+      USER_SERVICE_URL: http://user:8082
+      TRAINING_SERVICE_URL: http://training:8083
+      PROGRAM_SERVICE_URL: http://program:8084
+      ANALYTICS_SERVICE_URL: http://analytics:8085
+    depends_on:
+      - auth
+      - user
+      - training
+      - program
+      - analytics
+    ports:
+      - "8080:8080"

@@ -15,7 +15,8 @@ pub struct User {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum UserRole {
-    Admin,
+    #[serde(rename = "COACH")]
     Coach,
-    Member,
+    #[serde(rename = "CLIENT")]
+    Client,
 }

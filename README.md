@@ -1,37 +1,97 @@
-        GymCoach - mikroservisna aplikacija
-          - maskimalna ocena 10 -
+# GymCoach Backend
 
-1. Definisanje problema
-  Personalni treneri i njihovi klijenti često za praćenje napretka i evidenciju individualnih treninga koriste papirne beleške i notese. Problem stvara stalno listanje u prošlost kako bi videli progres klijenata i planiranje budućih treninga na osnovu podataka upisanih hemijskom olovkom, koji umeju često da budu izmrljani, izgubljeni ili prosto zaboravljeni. Ono što je moj cilj za ovaj projekat je razvoj mikroservisne web aplikacije koja omogućava:
-    upravljanje korisnicima (treneri i klijenti), evidenciju treninga i programa,
-    analizu performansi
-    preporuku budućih trening parametara korišćenjem analitike i jednostavnih ML modela.
+GymCoach je mikroservisni backend za rad sa trenerima, klijentima, treninzima, gotovim programima i analitikom treninga.
 
-2. Arhitektura sistema
-  Sistem je realizovan kao mikroservisna arhitektura, gde svaki servis ima sopstvenu bazu podataka i jasno definisane odgovornosti. Komunikacija sa frontend aplikacijom se vrši isključivo putem API Gateway-a. Arhitektura omogućava jednostavno proširenje sistema dodatnim proxy i integracionim slojevima u skladu sa potrebama aplikacije.
+Servisi:
+- `gym-coach-auth` - registracija, login i JWT tokeni
+- `gym-coach-user` - profili, coach-client veze i matching po ciljevima
+- `gym-coach-training` - evidencija treninga, grupa vezbi i serija
+- `gym-coach-program` - read-only programi po nedeljama i danima
+- `gym-coach-analytic-recomm` - analitika i preporuka za sledeci trening
+- `gym-coach-api-gateway` - jedina ulazna tacka za frontend
 
-3. Mikroservisi
-   
-  3.1 AuthService
-	  Mikroservis koji obavlja uloge registracije i autentifikacije korisnika, vodi računa o JWT tokenima i ima role-based access (RBAC) (COACH,CLIENT).
- 
-  3.2 UserService
-	  Mikroservis zadužen za upravljanje korisničkim profilima, povezivanje trenera i klijenata, čuvanje ciljeva klijenata i ponuda(takođe se odnosi na goals) trenera, na osnovu kojih se putem API-ja vrši odgovarajuće uparivanje klijenata sa trenerima.
-  
-  3.3 TrainingService
-	  Mikroservis koji ima praćenje pojedinacnih treninga. Svaki trening ima svoju kategoriju, koja može biti predefinisana ili prethodno sačuvana, ali može uneti i custom (koja će kasnije biti jedna od sačuvanih). Svaki trening ima grupe vežbi koje se rade tokom treninga. Svaka vežba se sastoji iz tipova(princip isti kao kategorije treninga), datuma i statusa treninga, kao i iz serija. Svaka serija čuva broj ponavljanja i opterećenje, na osnovu kog se pravi grafikon i analitika za predikcije budućih vežbi(više u 3e).
-  
-  3.4 ProgramService
-    Pored treninga imamo i unapred definisane programe koji treneri objavljuju, a bilo koji klijent bez njihove pomoći prati i selektuje ukoliko je završio. Programi su neizmenljivi za klijente i dostupni su isključivo u read-only režimu. Strukturirani su po nedeljama i danima.
-  
-  3.5 Analytics & Recommendation Service
-	  Mikroservis koji se bavi analizom istorijskih podataka treninga, generisanjem statističkih izveštaja i grafikona, kao i preporukom parametara za naredni trening, kao što su preporučena kilaža i broj ponavljanja.
-  
-  3.6 API Gateway
-	  API Gateway predstavlja jedinstvenu ulaznu tačku za frontend, rutiranje zahteva ka mikroservisima, validacija autentifikacije i centralizovana kontrala pristupa.
+## Pokretanje lokalno
 
-5. Dodatne i napredne funkcionalnosti
-  Od dodatnih funkcionalnosti implementiraću rad sa medijskim fajlovima, jedino dostupni u programskim treninzima, i analitiku u formi grafikona za praćenje progresa individualnih klijenata i vežbi koje izvode.
-  Što se tiče naprednih funkcionalnosti koristiću Docker kontejnere, i primenu mašinskog učenja za recommended kilažu ili broj ponavljanja. Kod ove funkcionalnosti ideja je praćenje vežbi iste kategorije klijenata, gde pri treniranju modela uzimam u obzir da li se menja kilaža, broj ponavljanja ili imamo stagnaciju. Takođe, pokušaću da uključim u tabelu za treniranje podataka i koliko je vremena prošlo između dva treninga.
-Baze podataka
-Svaki mikroservis poseduje sopstvenu bazu podataka, čime se obezbeđuje slaba sprega između servisa i nezavisnost u razvoju i skaliranju sistema.
+Pokreni svaki servis u posebnom terminalu:
+
+```powershell
+cargo run -p auth
+cargo run -p ntp-gym-coach-user
+cargo run -p training
+cargo run -p program
+cargo run -p analytic-recommendation
+cargo run -p api-gateway
+```
+
+Portovi:
+- Gateway `8080`
+- Auth `8081`
+- User `8082`
+- Training `8083`
+- Program `8084`
+- Analytics `8085`
+
+## Pokretanje kroz Docker
+
+```powershell
+docker compose up --build
+```
+
+## Demo nalozi
+
+- Coach: `coach@gymcoach.rs` / `coach123`
+- Client: `client@gymcoach.rs` / `client123`
+
+## Glavni endpointi preko gateway-a
+
+- `POST /api/auth/register`
+- `POST /api/auth/login`
+- `GET /api/auth/me`
+- `GET /api/users/profiles`
+- `GET /api/users/coaches`
+- `GET /api/users/clients/{client_id}/matches`
+- `POST /api/users/connections`
+- `GET /api/trainings`
+- `GET /api/trainings/client/{client_id}`
+- `POST /api/trainings`
+- `GET /api/trainings/catalog`
+- `GET /api/programs`
+- `GET /api/programs/{id}`
+- `POST /api/analytics/report`
+- `POST /api/analytics/recommendation`
+
+Svi endpointi osim `/api/auth/*` prolaze kroz JWT proveru u API Gateway-u.
+
+## Primer login zahteva
+
+```json
+{
+  "email": "client@gymcoach.rs",
+  "password": "client123"
+}
+```
+
+## Primer analytics zahteva
+
+```json
+{
+  "client_id": "22222222-2222-2222-2222-222222222222",
+  "exercise_name": "Bench Press",
+  "history": [
+    {
+      "performed_on": "2026-04-10",
+      "sets": [
+        { "reps": 8, "load_kg": 60.0 },
+        { "reps": 8, "load_kg": 62.5 }
+      ]
+    },
+    {
+      "performed_on": "2026-04-24",
+      "sets": [
+        { "reps": 8, "load_kg": 65.0 },
+        { "reps": 6, "load_kg": 67.5 }
+      ]
+    }
+  ]
+}
+```
