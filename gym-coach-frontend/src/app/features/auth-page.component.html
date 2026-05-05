@@ -1,0 +1,90 @@
+<section class="auth-layout">
+  <div class="brand-panel">
+    <p class="kicker">GymCoach Microservices</p>
+    <h1>Coach operations, client progress, and recommendations in one flow.</h1>
+    <p class="lead">
+      Angular frontend connected to the API Gateway, with screens for auth, users, trainings,
+      programs, and analytics.
+    </p>
+
+    <div class="feature-grid">
+      <article>
+        <span>01</span>
+        <h3>JWT Access</h3>
+        <p>Role-based login for coaches and clients through the gateway.</p>
+      </article>
+      <article>
+        <span>02</span>
+        <h3>Training Logs</h3>
+        <p>Create sessions, inspect exercise sets, and surface progression.</p>
+      </article>
+      <article>
+        <span>03</span>
+        <h3>Analytics</h3>
+        <p>Generate trend reports and training recommendations from history.</p>
+      </article>
+    </div>
+  </div>
+
+  <div class="auth-card">
+    <div class="tab-row">
+      <button [class.active]="mode() === 'login'" (click)="setMode('login')" type="button">
+        Login
+      </button>
+      <button [class.active]="mode() === 'register'" (click)="setMode('register')" type="button">
+        Register
+      </button>
+    </div>
+
+    @if (mode() === 'login') {
+      <form [formGroup]="loginForm" (ngSubmit)="submit()" class="form-grid">
+        <label>
+          <span>Email</span>
+          <input type="email" formControlName="email" />
+        </label>
+        <label>
+          <span>Password</span>
+          <input type="password" formControlName="password" />
+        </label>
+        <button class="primary-btn" [disabled]="loading()" type="submit">
+          {{ loading() ? 'Logging in...' : 'Open Workspace' }}
+        </button>
+      </form>
+    } @else {
+      <form [formGroup]="registerForm" (ngSubmit)="submit()" class="form-grid">
+        <label>
+          <span>Full name</span>
+          <input type="text" formControlName="full_name" />
+        </label>
+        <label>
+          <span>Email</span>
+          <input type="email" formControlName="email" />
+        </label>
+        <label>
+          <span>Password</span>
+          <input type="password" formControlName="password" />
+        </label>
+        <label>
+          <span>Role</span>
+          <select formControlName="role">
+            <option value="CLIENT">Client</option>
+            <option value="COACH">Coach</option>
+          </select>
+        </label>
+        <button class="primary-btn" [disabled]="loading()" type="submit">
+          {{ loading() ? 'Creating account...' : 'Create Account' }}
+        </button>
+      </form>
+    }
+
+    @if (error()) {
+      <p class="error-banner">{{ error() }}</p>
+    }
+
+    <div class="demo-box">
+      <p>Demo login</p>
+      <strong>client@gymcoach.rs / client123</strong>
+      <strong>coach@gymcoach.rs / coach123</strong>
+    </div>
+  </div>
+</section>

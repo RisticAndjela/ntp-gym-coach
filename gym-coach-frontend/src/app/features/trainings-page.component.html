@@ -1,0 +1,117 @@
+<section class="page-shell">
+  <div class="page-header">
+    <div>
+      <p class="section-kicker">Training Service</p>
+      <h1>Session timeline and workout creation</h1>
+    </div>
+  </div>
+
+  @if (message()) {
+    <p class="success-banner">{{ message() }}</p>
+  }
+  @if (error()) {
+    <p class="error-banner">{{ error() }}</p>
+  }
+
+  <div class="panel-grid">
+    <article class="glass-card">
+      <p class="section-kicker">Create Session</p>
+      <form [formGroup]="trainingForm" class="form-grid" (ngSubmit)="submitTraining()">
+        <label>
+          <span>Category</span>
+          <input type="text" formControlName="category" list="category-list" />
+        </label>
+        <label>
+          <span>Status</span>
+          <select formControlName="status">
+            <option value="PLANNED">Planned</option>
+            <option value="COMPLETED">Completed</option>
+            <option value="SKIPPED">Skipped</option>
+          </select>
+        </label>
+        <label>
+          <span>Client</span>
+          <select formControlName="client_id">
+            @for (client of clientProfiles(); track client.id) {
+              <option [value]="client.id">{{ client.full_name }}</option>
+            }
+          </select>
+        </label>
+        <label>
+          <span>Exercise</span>
+          <input type="text" formControlName="exercise_name" />
+        </label>
+        <label>
+          <span>Exercise type</span>
+          <input type="text" formControlName="exercise_type" list="exercise-type-list" />
+        </label>
+        <label>
+          <span>Date</span>
+          <input type="date" formControlName="performed_on" />
+        </label>
+        <label class="span-2">
+          <span>Sets</span>
+          <input type="text" formControlName="sets" />
+        </label>
+        <label class="span-2">
+          <span>Notes</span>
+          <textarea rows="4" formControlName="notes"></textarea>
+        </label>
+        <button class="primary-btn span-2" type="submit">Save Training</button>
+      </form>
+
+      <datalist id="category-list">
+        @for (category of catalog().categories; track category) {
+          <option [value]="category"></option>
+        }
+      </datalist>
+
+      <datalist id="exercise-type-list">
+        @for (exerciseType of catalog().exercise_types; track exerciseType) {
+          <option [value]="exerciseType"></option>
+        }
+      </datalist>
+    </article>
+
+    <article class="glass-card">
+      <p class="section-kicker">Catalog</p>
+      <h2>Existing categories and exercise types</h2>
+      <div class="tag-row">
+        @for (category of catalog().categories; track category) {
+          <span>{{ category }}</span>
+        }
+      </div>
+      <div class="tag-row">
+        @for (exerciseType of catalog().exercise_types; track exerciseType) {
+          <span>{{ exerciseType }}</span>
+        }
+      </div>
+    </article>
+  </div>
+
+  <article class="glass-card">
+    <p class="section-kicker">All Sessions</p>
+    <div class="stack-list">
+      @for (training of trainings(); track training.id) {
+        <div class="list-card">
+          <div class="coach-topline">
+            <strong>{{ training.category }}</strong>
+            <span class="pill">{{ training.status }}</span>
+          </div>
+          <p>{{ training.notes }}</p>
+          @for (group of training.exercise_groups; track group.name) {
+            <div>
+              <strong>{{ group.name }}</strong>
+              @for (exercise of group.exercises; track exercise.name + exercise.performed_on) {
+                <p>
+                  {{ exercise.name }} • {{ exercise.performed_on }} •
+                  {{ exercise.sets.length }} sets
+                </p>
+              }
+            </div>
+          }
+        </div>
+      }
+    </div>
+  </article>
+</section>

@@ -1,0 +1,57 @@
+<section class="page-shell">
+  <div class="page-header">
+    <div>
+      <p class="section-kicker">Program Service</p>
+      <h1>Read-only coaching programs with weekly structure</h1>
+    </div>
+  </div>
+
+  @if (error()) {
+    <p class="error-banner">{{ error() }}</p>
+  }
+
+  <div class="program-layout">
+    <aside class="glass-card">
+      <p class="section-kicker">Published Programs</p>
+      <div class="stack-list">
+        @for (program of programs(); track program.id) {
+          <button
+            class="program-button"
+            [class.active]="selectedProgramId() === program.id"
+            type="button"
+            (click)="selectProgram(program.id)"
+          >
+            <strong>{{ program.title }}</strong>
+            <span>{{ program.level }}</span>
+          </button>
+        }
+      </div>
+    </aside>
+
+    <article class="glass-card detail-card">
+      @if (selectedProgram(); as program) {
+        <p class="section-kicker">Program Detail</p>
+        <h2>{{ program.title }}</h2>
+        <p>{{ program.goal }}</p>
+        @for (week of program.weeks; track week.week) {
+          <section class="week-block">
+            <h3>Week {{ week.week }}</h3>
+            @for (day of week.days; track day.day) {
+              <div class="day-card">
+                <strong>Day {{ day.day }} · {{ day.title }}</strong>
+                @for (exercise of day.exercises; track exercise.name) {
+                  <div class="exercise-line">
+                    <span>{{ exercise.name }}</span>
+                    <span>{{ exercise.sets }} x {{ exercise.reps }}</span>
+                  </div>
+                }
+              </div>
+            }
+          </section>
+        }
+      } @else {
+        <p>Select a program to inspect its structure.</p>
+      }
+    </article>
+  </div>
+</section>

@@ -1,0 +1,77 @@
+<section class="page-shell">
+  <div class="hero-card">
+    <div>
+      <p class="section-kicker">Overview</p>
+      <h1>Welcome back, {{ displayName() }}</h1>
+      <p class="hero-copy">
+        This dashboard aggregates user management, training tracking, read-only programs and
+        progression signals from your GymCoach backend.
+      </p>
+    </div>
+    <div class="status-chip">{{ currentProfile()?.role || 'Connected' }}</div>
+  </div>
+
+  @if (error()) {
+    <p class="error-banner">{{ error() }}</p>
+  }
+
+  <div class="metric-grid">
+    <article class="metric-card">
+      <span>Profiles</span>
+      <strong>{{ profiles().length }}</strong>
+      <p>Connected user profiles available in UserService.</p>
+    </article>
+    <article class="metric-card">
+      <span>Trainings</span>
+      <strong>{{ trainings().length }}</strong>
+      <p>Sessions currently visible through TrainingService.</p>
+    </article>
+    <article class="metric-card">
+      <span>Programs</span>
+      <strong>{{ programCount() }}</strong>
+      <p>Read-only plans published for self-guided client use.</p>
+    </article>
+  </div>
+
+  <div class="panel-grid">
+    <app-progress-chart
+      [labels]="benchTrend().labels"
+      [values]="benchTrend().values"
+    />
+
+    <article class="glass-card">
+      <p class="section-kicker">Current Profile</p>
+      @if (currentProfile(); as profile) {
+        <h2>{{ profile.full_name }}</h2>
+        <p>{{ profile.bio }}</p>
+        <div class="tag-row">
+          @for (goal of profile.goals; track goal) {
+            <span>{{ goal }}</span>
+          }
+        </div>
+      } @else {
+        <p>Profile is not yet available in the current response set.</p>
+      }
+    </article>
+  </div>
+
+  <article class="glass-card">
+    <div class="section-header">
+      <div>
+        <p class="section-kicker">Recent Sessions</p>
+        <h2>Training timeline</h2>
+      </div>
+    </div>
+    <div class="session-list">
+      @for (training of trainings(); track training.id) {
+        <div class="session-item">
+          <div>
+            <strong>{{ training.category }}</strong>
+            <p>{{ training.notes }}</p>
+          </div>
+          <span class="pill">{{ training.status }}</span>
+        </div>
+      }
+    </div>
+  </article>
+</section>

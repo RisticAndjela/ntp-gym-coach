@@ -1,0 +1,77 @@
+<section class="page-shell">
+  <div class="page-header">
+    <div>
+      <p class="section-kicker">Analytics Service</p>
+      <h1>Volume trends and next-session recommendation</h1>
+    </div>
+  </div>
+
+  @if (error()) {
+    <p class="error-banner">{{ error() }}</p>
+  }
+
+  <div class="panel-grid">
+    <article class="glass-card">
+      <p class="section-kicker">Exercise Selection</p>
+      <form [formGroup]="form" class="form-grid" (ngSubmit)="runAnalysis()">
+        <label>
+          <span>Exercise</span>
+          <select formControlName="exercise_name">
+            @for (exerciseName of exerciseNames(); track exerciseName) {
+              <option [value]="exerciseName">{{ exerciseName }}</option>
+            }
+          </select>
+        </label>
+        <button class="primary-btn" type="submit">Refresh Analysis</button>
+      </form>
+    </article>
+
+    <article class="glass-card">
+      <p class="section-kicker">Recommendation</p>
+      @if (recommendation(); as item) {
+        <h2>{{ item.exercise_name }}</h2>
+        <div class="metric-grid compact">
+          <div class="metric-card">
+            <span>Recommended load</span>
+            <strong>{{ item.recommended_load_kg }} kg</strong>
+          </div>
+          <div class="metric-card">
+            <span>Target reps</span>
+            <strong>{{ item.recommended_reps }}</strong>
+          </div>
+        </div>
+        <p>{{ item.rationale }}</p>
+      } @else {
+        <p>No recommendation yet.</p>
+      }
+    </article>
+  </div>
+
+  <app-progress-chart [labels]="chartData().labels" [values]="chartData().values" />
+
+  <article class="glass-card">
+    <p class="section-kicker">Report</p>
+    @if (report(); as item) {
+      <div class="metric-grid compact">
+        <div class="metric-card">
+          <span>Sessions</span>
+          <strong>{{ item.sessions_analyzed }}</strong>
+        </div>
+        <div class="metric-card">
+          <span>Average load</span>
+          <strong>{{ item.avg_load_kg }} kg</strong>
+        </div>
+        <div class="metric-card">
+          <span>Best load</span>
+          <strong>{{ item.best_load_kg }} kg</strong>
+        </div>
+        <div class="metric-card">
+          <span>Trend</span>
+          <strong>{{ item.trend }}</strong>
+        </div>
+      </div>
+    } @else {
+      <p>Pick an exercise and generate report data.</p>
+    }
+  </article>
+</section>

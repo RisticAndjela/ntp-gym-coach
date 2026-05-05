@@ -1,0 +1,40 @@
+<div class="chart-card">
+  <div class="chart-header">
+    <div>
+      <p class="eyebrow">Progress Curve</p>
+      <h3>Trend across sessions</h3>
+    </div>
+    <div class="chart-metrics">
+      <span>Latest {{ stats().latest | number: '1.0-1' }}</span>
+      <span>Best {{ stats().max | number: '1.0-1' }}</span>
+    </div>
+  </div>
+
+  @if (values().length) {
+    <svg class="chart" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+      <defs>
+        <linearGradient id="curve" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#ff7a18" />
+          <stop offset="100%" stop-color="#1447e6" />
+        </linearGradient>
+      </defs>
+      <polyline class="chart-line" [attr.points]="points()" />
+      @for (value of values(); track $index) {
+        <circle
+          class="chart-point"
+          [attr.cx]="($index / Math.max(values().length - 1, 1)) * 100"
+          [attr.cy]="100 - ((value - stats().min) / ((stats().max - stats().min) || 1)) * 100"
+          r="1.8"
+        />
+      }
+    </svg>
+
+    <div class="label-row">
+      @for (label of labels(); track label) {
+        <span>{{ label }}</span>
+      }
+    </div>
+  } @else {
+    <div class="empty-chart">No exercise history yet.</div>
+  }
+</div>

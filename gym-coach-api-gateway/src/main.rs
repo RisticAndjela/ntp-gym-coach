@@ -11,6 +11,7 @@ use jsonwebtoken::{decode, DecodingKey, Validation};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, env, net::SocketAddr, sync::Arc};
+use tower_http::cors::{Any, CorsLayer};
 
 const GATEWAY_PORT: u16 = 8080;
 const JWT_SECRET: &str = "gym-coach-super-secret";
@@ -93,6 +94,12 @@ async fn main() {
         .route("/api/programs/*path", any(proxy_programs))
         .route("/api/analytics", any(proxy_analytics))
         .route("/api/analytics/*path", any(proxy_analytics))
+        .layer(
+            CorsLayer::new()
+                .allow_origin(Any)
+                .allow_headers(Any)
+                .allow_methods(Any),
+        )
         .with_state(state);
 
     let host = env::var("SERVICE_HOST").unwrap_or_else(|_| "0.0.0.0".into());

@@ -1,0 +1,172 @@
+.auth-layout {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1.25fr 0.95fr;
+  background:
+    radial-gradient(circle at top left, rgba(255, 122, 24, 0.18), transparent 34%),
+    radial-gradient(circle at bottom right, rgba(20, 71, 230, 0.14), transparent 30%),
+    linear-gradient(145deg, #f7f1e8, #eef4ff 60%, #fef9ef);
+}
+
+.brand-panel {
+  padding: 5rem;
+  display: grid;
+  align-content: center;
+  gap: 1.5rem;
+}
+
+.kicker {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  font-size: 0.78rem;
+  color: #9a3412;
+}
+
+.brand-panel h1 {
+  margin: 0;
+  font-family: 'Fraunces', serif;
+  font-size: clamp(2.6rem, 5vw, 5rem);
+  line-height: 0.95;
+  color: #111827;
+}
+
+.lead {
+  max-width: 44rem;
+  margin: 0;
+  font-size: 1.05rem;
+  color: #475569;
+}
+
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.feature-grid article,
+.auth-card {
+  backdrop-filter: blur(14px);
+}
+
+.feature-grid article {
+  padding: 1.25rem;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.62);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow: 0 24px 50px rgba(15, 23, 42, 0.08);
+}
+
+.feature-grid span {
+  color: #ea580c;
+  font-size: 0.78rem;
+  letter-spacing: 0.14em;
+}
+
+.feature-grid h3 {
+  margin: 0.5rem 0;
+  font-size: 1.05rem;
+}
+
+.feature-grid p {
+  margin: 0;
+  color: #64748b;
+}
+
+.auth-card {
+  align-self: center;
+  justify-self: center;
+  width: min(32rem, calc(100% - 3rem));
+  padding: 2rem;
+  border-radius: 30px;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 28px 80px rgba(15, 23, 42, 0.14);
+}
+
+.tab-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+  margin-bottom: 1.5rem;
+}
+
+.tab-row button {
+  border: 0;
+  border-radius: 999px;
+  padding: 0.9rem 1rem;
+  background: #eef2ff;
+  color: #475569;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.tab-row button.active {
+  background: linear-gradient(90deg, #ea580c, #1447e6);
+  color: white;
+}
+
+.form-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.form-grid label {
+  display: grid;
+  gap: 0.45rem;
+  color: #334155;
+  font-weight: 600;
+}
+
+.form-grid input,
+.form-grid select {
+  border: 1px solid rgba(148, 163, 184, 0.42);
+  border-radius: 18px;
+  padding: 0.95rem 1rem;
+  background: rgba(255, 255, 255, 0.85);
+}
+
+.primary-btn {
+  margin-top: 0.35rem;
+}
+
+.error-banner {
+  margin: 1rem 0 0;
+  padding: 0.9rem 1rem;
+  border-radius: 18px;
+  background: rgba(239, 68, 68, 0.12);
+  color: #b91c1c;
+}
+
+.demo-box {
+  margin-top: 1.25rem;
+  padding: 1rem 1.1rem;
+  border-radius: 22px;
+  background: #0f172a;
+  color: #f8fafc;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.demo-box p {
+  margin: 0;
+  color: #cbd5e1;
+}
+
+@media (max-width: 960px) {
+  .auth-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .brand-panel {
+    padding: 2rem 1.4rem 0.5rem;
+  }
+
+  .feature-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .auth-card {
+    margin: 1rem 0 2rem;
+  }
+}

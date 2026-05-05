@@ -1,6 +1,6 @@
-# GymCoach Backend
+# GymCoach Platform
 
-GymCoach je mikroservisni backend za rad sa trenerima, klijentima, treninzima, gotovim programima i analitikom treninga.
+GymCoach je mikroservisna aplikacija za rad sa trenerima, klijentima, treninzima, programima i analitikom.
 
 Servisi:
 - `gym-coach-auth` - registracija, login i JWT tokeni
@@ -9,10 +9,11 @@ Servisi:
 - `gym-coach-program` - read-only programi po nedeljama i danima
 - `gym-coach-analytic-recomm` - analitika i preporuka za sledeci trening
 - `gym-coach-api-gateway` - jedina ulazna tacka za frontend
+- `gym-coach-frontend` - Angular korisnicki interfejs povezan na gateway
 
 ## Pokretanje lokalno
 
-Pokreni svaki servis u posebnom terminalu:
+Pokreni backend servise u posebnim terminalima:
 
 ```powershell
 cargo run -p auth
@@ -23,7 +24,15 @@ cargo run -p analytic-recommendation
 cargo run -p api-gateway
 ```
 
+Pokreni Angular frontend:
+
+```powershell
+cd gym-coach-frontend
+npm.cmd start
+```
+
 Portovi:
+- Frontend `4200`
 - Gateway `8080`
 - Auth `8081`
 - User `8082`
@@ -37,10 +46,21 @@ Portovi:
 docker compose up --build
 ```
 
+Docker compose podize i Angular frontend na `http://localhost:4200`.
+
 ## Demo nalozi
 
 - Coach: `coach@gymcoach.rs` / `coach123`
 - Client: `client@gymcoach.rs` / `client123`
+
+## Frontend funkcionalnosti
+
+- Login i registracija korisnika kroz gateway
+- Dashboard sa pregledom profila, treninga i programa
+- Upravljanje profilima, ciljevima i coach-client konekcijama
+- Kreiranje i pregled treninga
+- Read-only pregled programa po nedeljama i danima
+- Analitika i preporuka opterecenja / broja ponavljanja
 
 ## Glavni endpointi preko gateway-a
 

@@ -1,0 +1,94 @@
+<section class="page-shell">
+  <div class="page-header">
+    <div>
+      <p class="section-kicker">User Service</p>
+      <h1>Profiles, connections, and coach matching</h1>
+    </div>
+  </div>
+
+  @if (status()) {
+    <p class="success-banner">{{ status() }}</p>
+  }
+  @if (error()) {
+    <p class="error-banner">{{ error() }}</p>
+  }
+
+  <div class="panel-grid">
+    <article class="glass-card">
+      <p class="section-kicker">Edit Profile</p>
+      <h2>{{ currentProfile()?.full_name }}</h2>
+      <form [formGroup]="profileForm" class="form-grid" (ngSubmit)="saveProfile()">
+        <label>
+          <span>Full name</span>
+          <input type="text" formControlName="full_name" />
+        </label>
+        <label>
+          <span>Bio</span>
+          <textarea rows="4" formControlName="bio"></textarea>
+        </label>
+        <label>
+          <span>Goals</span>
+          <input type="text" formControlName="goals" />
+        </label>
+        <label>
+          <span>Offers</span>
+          <input type="text" formControlName="offers" />
+        </label>
+        <button class="primary-btn" type="submit">Save Profile</button>
+      </form>
+    </article>
+
+    <article class="glass-card">
+      <p class="section-kicker">Connections</p>
+      <h2>Assigned relationships</h2>
+      @if (clientConnections().length) {
+        <div class="stack-list">
+          @for (link of clientConnections(); track link.created_at) {
+            <div class="list-card">
+              <strong>{{ coachNameFor(link) }}</strong>
+              <p>Linked on {{ link.created_at | date: 'mediumDate' }}</p>
+            </div>
+          }
+        </div>
+      } @else if (coachConnections().length) {
+        <div class="stack-list">
+          @for (link of coachConnections(); track link.created_at) {
+            <div class="list-card">
+              <strong>{{ clientNameFor(link) }}</strong>
+              <p>Coach-client link created {{ link.created_at | date: 'mediumDate' }}</p>
+            </div>
+          }
+        </div>
+      } @else {
+        <p>No active connection entries for the current user yet.</p>
+      }
+    </article>
+  </div>
+
+  <article class="glass-card">
+    <div class="section-header">
+      <div>
+        <p class="section-kicker">Coach Matching</p>
+        <h2>Recommended coaches for the current client</h2>
+      </div>
+    </div>
+    <div class="coach-grid">
+      @for (match of matches(); track match.coach_id) {
+        <div class="coach-card">
+          <div class="coach-topline">
+            <strong>{{ match.coach_name }}</strong>
+            <span class="pill">{{ match.score }} match</span>
+          </div>
+          <div class="tag-row">
+            @for (goal of match.matching_goals; track goal) {
+              <span>{{ goal }}</span>
+            }
+          </div>
+          <button class="secondary-btn" type="button" (click)="connectWithCoach(match.coach_id)">
+            Connect coach
+          </button>
+        </div>
+      }
+    </div>
+  </article>
+</section>

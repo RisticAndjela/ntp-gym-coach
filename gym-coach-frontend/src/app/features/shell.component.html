@@ -1,0 +1,28 @@
+<div class="shell-layout">
+  <aside class="sidebar">
+    <div>
+      <p class="brand-kicker">GymCoach</p>
+      <h2>Command center</h2>
+      <p class="brand-copy">Manage microservice-backed workflows from one Angular workspace.</p>
+    </div>
+
+    <nav class="nav-list">
+      @for (item of navigation; track item.path) {
+        <a routerLinkActive="active" [routerLink]="item.path">{{ item.label }}</a>
+      }
+    </nav>
+
+    <div class="user-card">
+      <div class="avatar">{{ initials() }}</div>
+      <div>
+        <strong>{{ claims()?.email }}</strong>
+        <p>{{ role() }}</p>
+      </div>
+      <button type="button" (click)="logout()">Logout</button>
+    </div>
+  </aside>
+
+  <main class="content-pane">
+    <router-outlet />
+  </main>
+</div>

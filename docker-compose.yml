@@ -64,3 +64,11 @@ services:
       - analytics
     ports:
       - "8080:8080"
+
+  frontend:
+    build:
+      context: ./gym-coach-frontend
+    depends_on:
+      - gateway
+    ports:
+      - "4200:80"
