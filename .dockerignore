@@ -1,0 +1,15 @@
+.git
+.idea
+target
+target_codex
+**/target
+gym-coach-frontend/node_modules
+gym-coach-frontend/dist
+gym-coach-frontend/.angular
+gym-coach-frontend/coverage
+gym-coach-frontend/.vscode
+gym-coach-frontend
+*.log
+*.err.log
+*.run.log
+*.runtime.log
