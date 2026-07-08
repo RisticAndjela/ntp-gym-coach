@@ -26,6 +26,8 @@ export class AnalyticsPageComponent {
   private readonly api = inject(ApiService);
   private readonly authStore = inject(AuthStore);
   private readonly fb = inject(FormBuilder);
+  private readonly selectedClientIdState = signal('');
+  private readonly selectedExerciseNameState = signal('');
 
   readonly trainings = signal<TrainingSession[]>([]);
   readonly profiles = signal<UserProfile[]>([]);
@@ -41,7 +43,7 @@ export class AnalyticsPageComponent {
     progression_preference: ['progressive_overload' as const],
   });
   readonly selectedClientId = computed(() =>
-    this.isCoach() ? this.form.getRawValue().client_id : this.authStore.userId() ?? '',
+    this.isCoach() ? this.selectedClientIdState() : this.authStore.userId() ?? '',
   );
   readonly connectedClientProfiles = computed(() => {
     const connectedClientIds = new Set(this.coachConnections().map((connection) => connection.client_id));
@@ -75,7 +77,7 @@ export class AnalyticsPageComponent {
   });
 
   readonly selectedExercises = computed(() => {
-    const selected = this.form.getRawValue().exercise_name;
+    const selected = this.selectedExerciseNameState();
     return this.visibleTrainings()
       .flatMap((training) => training.exercise_groups)
       .flatMap((group) => group.exercises)
@@ -142,6 +144,8 @@ export class AnalyticsPageComponent {
           client_id: defaultClientId,
           exercise_name: this.exerciseNames()[0] ?? '',
         });
+        this.selectedClientIdState.set(defaultClientId);
+        this.selectedExerciseNameState.set(this.exerciseNames()[0] ?? '');
 
         if (this.exerciseNames().length) {
           this.runAnalysis();
@@ -204,6 +208,8 @@ export class AnalyticsPageComponent {
       client_id: clientId,
       exercise_name: '',
     });
+    this.selectedClientIdState.set(clientId);
+    this.selectedExerciseNameState.set('');
     this.report.set(null);
     this.recommendation.set(null);
 
@@ -214,7 +220,13 @@ export class AnalyticsPageComponent {
     }
 
     this.form.patchValue({ exercise_name: firstExercise });
+    this.selectedExerciseNameState.set(firstExercise);
     this.runAnalysis();
+  }
+
+  selectExercise(exerciseName: string): void {
+    this.form.patchValue({ exercise_name: exerciseName });
+    this.selectedExerciseNameState.set(exerciseName);
   }
 
   metricValue(value: number | null | undefined, unit: string | null | undefined): string {

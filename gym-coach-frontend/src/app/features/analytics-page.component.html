@@ -27,7 +27,7 @@
         }
         <label>
           <span>Exercise</span>
-          <select formControlName="exercise_name">
+          <select formControlName="exercise_name" (change)="selectExercise($any($event.target).value)">
             @for (exerciseName of exerciseNames(); track exerciseName) {
               <option [value]="exerciseName">{{ exerciseName }}</option>
             }
