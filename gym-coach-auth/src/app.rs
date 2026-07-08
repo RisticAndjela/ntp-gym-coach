@@ -201,6 +201,7 @@ async fn register(
     State(state): State<AppState>,
     Json(payload): Json<RegisterRequest>,
 ) -> Result<(StatusCode, Json<AuthResponse>), (StatusCode, Json<serde_json::Value>)> {
+    validate_register_request(&payload)?;
     let db = db_client(&state).await.map_err(db_error)?;
     let email = payload.email.trim().to_lowercase();
     let existing = db
@@ -291,6 +292,34 @@ async fn me(headers: HeaderMap) -> impl IntoResponse {
     let claims =
         decode_claims(token).map_err(|_| error(StatusCode::UNAUTHORIZED, "Invalid token"))?;
     Ok(Json(claims))
+}
+
+fn validate_register_request(
+    payload: &RegisterRequest,
+) -> Result<(), (StatusCode, Json<serde_json::Value>)> {
+    if payload.full_name.trim().len() < 2 {
+        return Err(error(
+            StatusCode::BAD_REQUEST,
+            "Full name must contain at least 2 characters",
+        ));
+    }
+
+    let email = payload.email.trim();
+    if email.is_empty() || !email.contains('@') {
+        return Err(error(
+            StatusCode::BAD_REQUEST,
+            "Email address is not valid",
+        ));
+    }
+
+    if payload.password.len() < 6 {
+        return Err(error(
+            StatusCode::BAD_REQUEST,
+            "Password must contain at least 6 characters",
+        ));
+    }
+
+    Ok(())
 }
 
 fn public_user(user: &UserAccount) -> PublicUser {
