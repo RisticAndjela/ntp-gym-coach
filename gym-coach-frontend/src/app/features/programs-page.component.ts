@@ -2,7 +2,18 @@ import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 
 import { ApiService } from '../core/api.service';
-import { MediaAsset, ProgramExercise, ProgramWeek, TrainingProgram } from '../core/models';
+import { AuthStore } from '../core/auth.store';
+import {
+  CoachClientLink,
+  MediaAsset,
+  ProgramDay,
+  ProgramExercise,
+  ProgramWeek,
+  TrainingProgram,
+  TrainingSession,
+  TrainingStatus,
+  UserProfile,
+} from '../core/models';
 
 @Component({
   selector: 'app-programs-page',
@@ -12,16 +23,49 @@ import { MediaAsset, ProgramExercise, ProgramWeek, TrainingProgram } from '../co
 })
 export class ProgramsPageComponent {
   private readonly api = inject(ApiService);
+  private readonly authStore = inject(AuthStore);
 
   readonly programs = signal<TrainingProgram[]>([]);
   readonly selectedProgramId = signal<string | null>(null);
   readonly error = signal('');
+  readonly message = signal('');
   readonly previewMedia = signal<MediaAsset | null>(null);
+  readonly profiles = signal<UserProfile[]>([]);
+  readonly clientConnections = signal<CoachClientLink[]>([]);
+  readonly coachConnections = signal<CoachClientLink[]>([]);
+  readonly plannerState = signal<{
+    program: TrainingProgram;
+    week: ProgramWeek;
+    day: ProgramDay;
+  } | null>(null);
+  readonly selectedCoachId = signal('');
+  readonly selectedClientId = signal('');
+  readonly selectedDate = signal(this.todayLabel());
+  readonly savingDayKey = signal<string | null>(null);
+  readonly isClient = computed(() => this.authStore.role() === 'CLIENT');
+  readonly isCoach = computed(() => this.authStore.role() === 'COACH');
+  readonly connectedCoachProfiles = computed(() => {
+    const connectedCoachIds = new Set(this.clientConnections().map((connection) => connection.coach_id));
+    return this.profiles().filter(
+      (profile) => profile.role === 'COACH' && connectedCoachIds.has(profile.id),
+    );
+  });
+  readonly connectedClientProfiles = computed(() => {
+    const connectedClientIds = new Set(this.coachConnections().map((connection) => connection.client_id));
+    return this.profiles().filter(
+      (profile) => profile.role === 'CLIENT' && connectedClientIds.has(profile.id),
+    );
+  });
   readonly selectedProgram = computed(
     () => this.programs().find((item) => item.id === this.selectedProgramId()) ?? null,
   );
 
   constructor() {
+    this.loadPrograms();
+    this.loadPlannerContext();
+  }
+
+  private loadPrograms(): void {
     this.api.getPrograms().subscribe({
       next: (programs) => {
         this.programs.set(programs);
@@ -29,6 +73,38 @@ export class ProgramsPageComponent {
       },
       error: () => this.error.set('Programs are currently unavailable.'),
     });
+  }
+
+  private loadPlannerContext(): void {
+    const userId = this.authStore.userId();
+    if (!userId) {
+      return;
+    }
+
+    this.api.getProfiles().subscribe({
+      next: (profiles) => this.profiles.set(profiles),
+      error: () => this.error.set('Programs loaded, but assignment context could not be checked.'),
+    });
+
+    if (this.isClient()) {
+      this.api.getClientConnections(userId).subscribe({
+        next: (connections) => {
+          this.clientConnections.set(connections);
+          this.selectedCoachId.set(connections[0]?.coach_id ?? '');
+        },
+        error: () => this.error.set('Programs loaded, but coach connection could not be checked.'),
+      });
+    }
+
+    if (this.isCoach()) {
+      this.api.getCoachConnections(userId).subscribe({
+        next: (connections) => {
+          this.coachConnections.set(connections);
+          this.selectedClientId.set(connections[0]?.client_id ?? '');
+        },
+        error: () => this.error.set('Programs loaded, but client connection could not be checked.'),
+      });
+    }
   }
 
   selectProgram(id: string): void {
@@ -41,6 +117,98 @@ export class ProgramsPageComponent {
 
   closeMediaPreview(): void {
     this.previewMedia.set(null);
+  }
+
+  openPlanner(program: TrainingProgram, week: ProgramWeek, day: ProgramDay): void {
+    this.message.set('');
+    this.error.set('');
+    this.selectedDate.set(this.todayLabel());
+    this.plannerState.set({ program, week, day });
+  }
+
+  isSavingDay(programId: string, weekNumber: number, dayNumber: number): boolean {
+    return this.savingDayKey() === this.dayKey(programId, weekNumber, dayNumber);
+  }
+
+  selectCoach(coachId: string): void {
+    this.selectedCoachId.set(coachId);
+  }
+
+  selectClient(clientId: string): void {
+    this.selectedClientId.set(clientId);
+  }
+
+  updateSelectedDate(date: string): void {
+    this.selectedDate.set(date);
+  }
+
+  closePlanner(): void {
+    this.plannerState.set(null);
+  }
+
+  submitPlanner(): void {
+    const planner = this.plannerState();
+    if (!planner) {
+      return;
+    }
+
+    const dayKey = this.dayKey(planner.program.id, planner.week.week, planner.day.day);
+    const clientId = this.isCoach() ? this.selectedClientId() : this.authStore.userId();
+    const coachId = this.isCoach() ? this.authStore.userId() : this.selectedCoachId() || null;
+
+    this.message.set('');
+    this.error.set('');
+
+    if (!clientId) {
+      this.error.set(this.isCoach() ? 'Choose a client before assigning this workout.' : 'You need to be signed in as a client.');
+      return;
+    }
+
+    if (!this.selectedDate()) {
+      this.error.set('Choose a training date before saving.');
+      return;
+    }
+
+    this.savingDayKey.set(dayKey);
+
+    const requestPayload: Omit<TrainingSession, 'id'> = {
+      coach_id: coachId,
+      client_id: clientId,
+      category: planner.day.title,
+      status: 'PLANNED' as TrainingStatus,
+      notes: this.isCoach()
+        ? `Assigned from program "${planner.program.title}" (week ${planner.week.week}, day ${planner.day.day}).`
+        : `Saved from program "${planner.program.title}" (week ${planner.week.week}, day ${planner.day.day}).`,
+      exercise_groups: [
+        {
+          name: planner.day.title,
+          exercises: planner.day.exercises.map((exercise) => ({
+            name: exercise.name,
+            exercise_type: 'program',
+            tracking_mode: 'load_reps',
+            performed_on: this.selectedDate(),
+            sets: this.programExerciseSets(exercise),
+            media: exercise.media,
+          })),
+        },
+      ],
+    };
+
+    this.api.createTraining(requestPayload).subscribe({
+      next: () => {
+        this.message.set(
+          this.isCoach()
+            ? `"${planner.day.title}" was assigned to the selected client.`
+            : `"${planner.day.title}" was added to your trainings as planned.`,
+        );
+        this.savingDayKey.set(null);
+        this.closePlanner();
+      },
+      error: () => {
+        this.error.set('Planned training could not be created.');
+        this.savingDayKey.set(null);
+      },
+    });
   }
 
   async downloadProgramPdf(program: TrainingProgram): Promise<void> {
@@ -307,6 +475,22 @@ export class ProgramsPageComponent {
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '') || 'training-program';
+  }
+
+  private programExerciseSets(exercise: ProgramExercise): Array<{ reps: number; load_kg: number }> {
+    const reps = Number(exercise.reps.match(/\d+/)?.[0] ?? 0);
+    return Array.from({ length: exercise.sets }, () => ({
+      reps,
+      load_kg: 0,
+    }));
+  }
+
+  private todayLabel(): string {
+    return new Date().toISOString().slice(0, 10);
+  }
+
+  private dayKey(programId: string, weekNumber: number, dayNumber: number): string {
+    return `${programId}-${weekNumber}-${dayNumber}`;
   }
 
   private async loadPdfTools(): Promise<{

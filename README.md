@@ -67,7 +67,7 @@ PostgreSQL je dostupan na `localhost:5432`, a podaci ostaju sacuvani u Docker vo
 - Upravljanje profilima, ciljevima i coach-client konekcijama
 - Kreiranje i pregled treninga
 - Read-only pregled programa po nedeljama i danima
-- Analitika i preporuka opterecenja / broja ponavljanja
+- Analitika i preporuka za opterecenje, broj ponavljanja, trajanje ili trcanje/cardio
 
 ## Glavni endpointi preko gateway-a
 
@@ -106,9 +106,11 @@ Svi endpointi osim `/api/auth/*` prolaze kroz JWT proveru u API Gateway-u.
   "exercise_name": "Bench Press",
   "client_goals": ["strength", "fat loss"],
   "progression_preference": "progressive_overload",
+  "tracking_mode": "load_reps",
   "history": [
     {
       "performed_on": "2026-04-10",
+      "tracking_mode": "load_reps",
       "sets": [
         { "reps": 8, "load_kg": 60.0 },
         { "reps": 8, "load_kg": 62.5 }
@@ -116,6 +118,7 @@ Svi endpointi osim `/api/auth/*` prolaze kroz JWT proveru u API Gateway-u.
     },
     {
       "performed_on": "2026-04-24",
+      "tracking_mode": "load_reps",
       "sets": [
         { "reps": 8, "load_kg": 65.0 },
         { "reps": 6, "load_kg": 67.5 }
@@ -126,4 +129,10 @@ Svi endpointi osim `/api/auth/*` prolaze kroz JWT proveru u API Gateway-u.
 ```
 
 `progression_preference` moze biti `progressive_overload` ili `stagnation`.
-Preporuka sada vraca kompletniji plan po vezbi: broj serija, ciljanu kilazu i broj ponavljanja, uzimajuci u obzir istoriju svih serija i ciljeve klijenta.
+`tracking_mode` moze biti:
+- `load_reps` za vezbe sa kilazom, npr. `8x60, 8x62.5`
+- `reps_only` za bodyweight vezbe, npr. `15, 14, 12`
+- `duration` za vreme, npr. `30min, 25min`
+- `distance_duration` za trcanje/cardio, npr. `5km/28min, 6km/33min`
+
+Preporuka sada vraca kompletniji plan po vezbi i koristi metriku koja odgovara tipu aktivnosti, umesto da uvek pretpostavlja kilazu.

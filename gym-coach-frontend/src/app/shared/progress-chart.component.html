@@ -2,37 +2,78 @@
   <div class="chart-header">
     <div>
       <p class="eyebrow">Progress Curve</p>
-      <h3>Trend across sessions</h3>
+      <h3>{{ metricTitle() }} by day</h3>
     </div>
-    <div class="chart-metrics">
-      <span>Latest {{ stats().latest | number: '1.0-1' }}</span>
-      <span>Best {{ stats().max | number: '1.0-1' }}</span>
-    </div>
+
+    @if (model(); as chart) {
+      <div class="chart-summary">
+        <span>{{ chart.sessionsCount }} session{{ chart.sessionsCount === 1 ? '' : 's' }}</span>
+        <span>Current {{ chart.currentValue }}</span>
+        <span>{{ chart.recommendationValue ? `Target ${chart.recommendationValue}` : 'Target pending' }}</span>
+        <span>Peak {{ chart.peakValue }}</span>
+      </div>
+    }
   </div>
 
-  @if (values().length) {
-    <svg class="chart" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-      <defs>
-        <linearGradient id="curve" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stop-color="#ff7a18" />
-          <stop offset="100%" stop-color="#1447e6" />
-        </linearGradient>
-      </defs>
-      <polyline class="chart-line" [attr.points]="points()" />
-      @for (value of values(); track $index) {
-        <circle
-          class="chart-point"
-          [attr.cx]="($index / Math.max(values().length - 1, 1)) * 100"
-          [attr.cy]="100 - ((value - stats().min) / ((stats().max - stats().min) || 1)) * 100"
-          r="1.8"
-        />
-      }
-    </svg>
+  @if (model(); as chart) {
+    <div class="visual-shell">
+      <div class="axis-title axis-title-y">{{ metricTitle() }}{{ metricUnit() ? ' (' + metricUnit() + ')' : '' }}</div>
+      <div class="axis-title axis-title-x">Days</div>
 
-    <div class="label-row">
-      @for (label of labels(); track label) {
-        <span>{{ label }}</span>
-      }
+      <svg class="chart" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+        <defs>
+          <linearGradient id="historyCurve" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#f97316" />
+            <stop offset="100%" stop-color="#7c3aed" />
+          </linearGradient>
+        </defs>
+
+        @for (tick of chart.yTicks; track tick.value) {
+          <line class="grid-line" [attr.x1]="chart.left" [attr.y1]="tick.y" [attr.x2]="chart.right" [attr.y2]="tick.y" />
+        }
+
+        <line class="axis-line" [attr.x1]="chart.left" [attr.y1]="chart.top" [attr.x2]="chart.left" [attr.y2]="chart.bottom" />
+        <line class="axis-line" [attr.x1]="chart.left" [attr.y1]="chart.baselineY" [attr.x2]="chart.right" [attr.y2]="chart.baselineY" />
+
+        @for (tick of chart.yTicks; track tick.value) {
+          <text class="y-tick" [attr.x]="chart.left - 1.6" [attr.y]="tick.y + 1">{{ tick.value }}</text>
+        }
+
+        @if (chart.historyPath) {
+          <path class="history-path" [attr.d]="chart.historyPath" />
+        }
+
+        @if (chart.projectionPath) {
+          <path class="projection-path" [attr.d]="chart.projectionPath" />
+        }
+
+        @for (point of chart.historyPoints; track point.label) {
+          <circle
+            class="node node-history"
+            [class.node-current]="point.isCurrent"
+            [attr.cx]="point.x"
+            [attr.cy]="point.y"
+            [attr.r]="point.isCurrent ? 3.1 : 2.4"
+          />
+        }
+
+        @if (chart.recommendationPoint; as point) {
+          <circle class="node node-recommendation" [attr.cx]="point.x" [attr.cy]="point.y" r="3.1" />
+        }
+
+        @for (label of chart.xLabels; track label.x) {
+          <line class="x-guide" [attr.x1]="label.x" [attr.y1]="chart.baselineY" [attr.x2]="label.x" [attr.y2]="chart.baselineY + 2.2" />
+          <text class="x-tick" [class.x-tick-current]="label.current" [attr.x]="label.x" [attr.y]="chart.baselineY + 6">
+            {{ label.label }}
+          </text>
+        }
+      </svg>
+    </div>
+
+    <div class="chart-legend">
+      <span><i class="legend-dot legend-history"></i>History</span>
+      <span><i class="legend-dot legend-current"></i>Current</span>
+      <span><i class="legend-dot legend-target"></i>Recommendation</span>
     </div>
   } @else {
     <div class="empty-chart">No exercise history yet.</div>

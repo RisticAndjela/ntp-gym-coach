@@ -1,11 +1,12 @@
 .chart-card {
-  border-radius: 28px;
+  border-radius: 32px;
   padding: 1.5rem;
   background:
-    linear-gradient(140deg, rgba(255, 255, 255, 0.86), rgba(255, 246, 234, 0.92)),
-    #fff;
-  border: 1px solid rgba(17, 24, 39, 0.08);
-  box-shadow: 0 28px 60px rgba(17, 24, 39, 0.1);
+    radial-gradient(circle at top right, rgba(219, 234, 254, 0.85), transparent 26%),
+    radial-gradient(circle at bottom left, rgba(255, 237, 213, 0.9), transparent 30%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(248, 250, 252, 0.96));
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 26px 60px rgba(15, 23, 42, 0.08);
 }
 
 .chart-header {
@@ -15,55 +16,165 @@
   align-items: flex-start;
 }
 
-.chart-header h3 {
-  margin: 0.25rem 0 0;
-  font-size: 1.2rem;
-}
-
 .eyebrow {
   margin: 0;
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  font-size: 0.72rem;
-  color: #6b7280;
+  font-size: 0.74rem;
+  color: #64748b;
 }
 
-.chart-metrics {
-  display: grid;
-  gap: 0.35rem;
-  text-align: right;
+.chart-header h3 {
+  margin: 0.3rem 0 0;
+  font-size: 1.1rem;
   color: #0f172a;
-  font-weight: 600;
+}
+
+.chart-summary {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.chart-summary span {
+  padding: 0.45rem 0.75rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  color: #0f172a;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.visual-shell {
+  position: relative;
+  margin-top: 0.9rem;
+  padding: 1rem 0 0.35rem 0.35rem;
+}
+
+.axis-title {
+  position: absolute;
+  color: #64748b;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.axis-title-y {
+  top: 0;
+  left: 0;
+}
+
+.axis-title-x {
+  right: 0;
+  bottom: -0.1rem;
 }
 
 .chart {
   width: 100%;
-  height: 240px;
-  margin-top: 1.25rem;
+  height: 230px;
   overflow: visible;
 }
 
-.chart-line {
+.grid-line {
+  stroke: rgba(148, 163, 184, 0.18);
+  stroke-width: 0.55;
+  stroke-dasharray: 3 4;
+}
+
+.axis-line {
+  stroke: rgba(100, 116, 139, 0.46);
+  stroke-width: 0.7;
+}
+
+.history-path {
   fill: none;
-  stroke: url(#curve);
-  stroke-width: 2.4;
+  stroke: url(#historyCurve);
+  stroke-width: 3.2;
   stroke-linecap: round;
   stroke-linejoin: round;
+  filter: drop-shadow(0 8px 16px rgba(124, 58, 237, 0.12));
 }
 
-.chart-point {
-  fill: #1447e6;
-  stroke: white;
-  stroke-width: 0.8;
+.projection-path {
+  fill: none;
+  stroke: rgba(37, 99, 235, 0.72);
+  stroke-width: 2.2;
+  stroke-dasharray: 4 3;
 }
 
-.label-row {
+.node {
+  stroke: #fff;
+  stroke-width: 1.3;
+}
+
+.node-history {
+  fill: #7c3aed;
+}
+
+.node-current {
+  fill: #c2410c;
+  filter: drop-shadow(0 0 0.45rem rgba(194, 65, 12, 0.24));
+}
+
+.node-recommendation {
+  fill: #2563eb;
+}
+
+.y-tick {
+  fill: #64748b;
+  font-size: 3.1px;
+  text-anchor: end;
+}
+
+.x-guide {
+  stroke: rgba(100, 116, 139, 0.4);
+  stroke-width: 0.5;
+}
+
+.x-tick {
+  fill: #64748b;
+  font-size: 2.8px;
+  text-anchor: middle;
+}
+
+.x-tick-current {
+  fill: #0f172a;
+  font-weight: 700;
+}
+
+.chart-legend {
   display: flex;
-  justify-content: space-between;
-  gap: 0.5rem;
-  margin-top: 0.75rem;
-  color: #6b7280;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 0.4rem;
+  color: #64748b;
   font-size: 0.78rem;
+}
+
+.chart-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.38rem;
+}
+
+.legend-dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 999px;
+  display: inline-block;
+}
+
+.legend-history {
+  background: #7c3aed;
+}
+
+.legend-current {
+  background: #c2410c;
+}
+
+.legend-target {
+  background: #2563eb;
 }
 
 .empty-chart {
@@ -73,4 +184,18 @@
   background: rgba(255, 255, 255, 0.72);
   color: #64748b;
   text-align: center;
+}
+
+@media (max-width: 860px) {
+  .chart-header {
+    flex-direction: column;
+  }
+
+  .chart-summary {
+    justify-content: flex-start;
+  }
+
+  .chart {
+    height: 210px;
+  }
 }

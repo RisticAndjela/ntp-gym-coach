@@ -99,15 +99,18 @@ struct ServiceStatus {
 
 #[derive(Clone)]
 struct AppState {
-    db: Arc<Client>,
+    database_url: Arc<String>,
 }
 
 #[tokio::main]
 async fn main() {
-    let db = Arc::new(connect_db().await);
-    init_db(db.as_ref()).await.unwrap();
+    let database_url = env::var("DATABASE_URL").unwrap_or_else(|_| DEFAULT_DATABASE_URL.to_string());
+    let db = connect_db(&database_url).await.unwrap();
+    init_db(&db).await.unwrap();
 
-    let state = AppState { db };
+    let state = AppState {
+        database_url: Arc::new(database_url),
+    };
 
     let app = Router::new()
         .route("/health", get(health))
@@ -125,29 +128,30 @@ async fn main() {
         .unwrap();
 }
 
-async fn connect_db() -> Client {
-    let database_url =
-        env::var("DATABASE_URL").unwrap_or_else(|_| DEFAULT_DATABASE_URL.to_string());
-
+async fn connect_db(database_url: &str) -> Result<Client, tokio_postgres::Error> {
     for attempt in 1..=20 {
-        match tokio_postgres::connect(&database_url, NoTls).await {
+        match tokio_postgres::connect(database_url, NoTls).await {
             Ok((client, connection)) => {
                 tokio::spawn(async move {
                     if let Err(error) = connection.await {
                         eprintln!("Auth DB connection error: {error}");
                     }
                 });
-                return client;
+                return Ok(client);
             }
             Err(error) if attempt < 20 => {
                 eprintln!("Auth DB connect attempt {attempt} failed: {error}");
                 sleep(TokioDuration::from_secs(2)).await;
             }
-            Err(error) => panic!("Auth DB connection failed: {error}"),
+            Err(error) => return Err(error),
         }
     }
 
     unreachable!()
+}
+
+async fn db_client(state: &AppState) -> Result<Client, tokio_postgres::Error> {
+    connect_db(state.database_url.as_str()).await
 }
 
 async fn init_db(db: &Client) -> Result<(), tokio_postgres::Error> {
@@ -198,9 +202,9 @@ async fn register(
     State(state): State<AppState>,
     Json(payload): Json<RegisterRequest>,
 ) -> Result<(StatusCode, Json<AuthResponse>), (StatusCode, Json<serde_json::Value>)> {
+    let db = db_client(&state).await.map_err(db_error)?;
     let email = payload.email.trim().to_lowercase();
-    let existing = state
-        .db
+    let existing = db
         .query_opt("SELECT 1 FROM auth_users WHERE email = $1", &[&email])
         .await
         .map_err(db_error)?;
@@ -221,8 +225,7 @@ async fn register(
         created_at: Utc::now(),
     };
 
-    state
-        .db
+    db
         .execute(
             "
             INSERT INTO auth_users (id, full_name, email, password_hash, role, created_at)
@@ -253,9 +256,9 @@ async fn login(
     State(state): State<AppState>,
     Json(payload): Json<LoginRequest>,
 ) -> Result<Json<AuthResponse>, (StatusCode, Json<serde_json::Value>)> {
+    let db = db_client(&state).await.map_err(db_error)?;
     let email = payload.email.trim().to_lowercase();
-    let row = state
-        .db
+    let row = db
         .query_opt(
             "
             SELECT id, full_name, email, password_hash, role, created_at

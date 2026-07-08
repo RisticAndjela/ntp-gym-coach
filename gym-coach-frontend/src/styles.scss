@@ -310,6 +310,456 @@ textarea {
   color: #b91c1c;
 }
 
+.training-page {
+  gap: 1.1rem;
+  max-width: 1260px;
+  margin: 0 auto;
+}
+
+.training-page .page-header {
+  align-items: end;
+  padding: 0.25rem 0;
+}
+
+.training-page .page-header h1 {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: clamp(2rem, 3.2vw, 2.5rem);
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  max-width: 12ch;
+}
+
+.training-page .section-kicker,
+.training-page .form-section__eyebrow,
+.training-page .session-filters label span,
+.training-page .session-owner-pill strong {
+  letter-spacing: 0.12em;
+}
+
+.training-page .form-intro,
+.training-page .catalog-copy {
+  margin: 0.35rem 0 1rem;
+  color: #64748b;
+  max-width: 38rem;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.training-page .training-layout {
+  grid-template-columns: minmax(0, 1.9fr) minmax(280px, 0.92fr);
+  gap: 1.1rem;
+  align-items: start;
+}
+
+.training-page .training-form-card,
+.training-page .catalog-card {
+  border-radius: 22px;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
+}
+
+.training-page .training-form-card {
+  padding: 1.2rem;
+}
+
+.training-page .training-form-card > h2,
+.training-page .catalog-card > h2 {
+  font-size: 1.55rem;
+  line-height: 1.15;
+}
+
+.training-page .catalog-card {
+  padding: 1.15rem;
+  height: fit-content;
+  position: sticky;
+  top: 1.4rem;
+}
+
+.training-page .catalog-groups {
+  display: grid;
+  gap: 0.95rem;
+}
+
+.training-page .catalog-group {
+  display: grid;
+  gap: 0.65rem;
+  padding: 0.9rem;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.62);
+}
+
+.training-page .catalog-group__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.training-page .catalog-group__header h3 {
+  margin: 0;
+  font-size: 0.98rem;
+  color: #0f172a;
+}
+
+.training-page .catalog-group .pill {
+  padding: 0.35rem 0.7rem;
+  font-size: 0.76rem;
+}
+
+.training-page .form-grid {
+  gap: 0.9rem;
+}
+
+.training-page .form-section {
+  display: grid;
+  gap: 0.9rem;
+  padding: 0.95rem;
+  border-radius: 20px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background: rgba(248, 250, 252, 0.76);
+}
+
+.training-page .form-section__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.training-page .form-section__header h3,
+.training-page .exercise-stack__header h3 {
+  margin: 0;
+  font-size: 1.18rem;
+  line-height: 1.2;
+}
+
+.training-page .form-section__eyebrow {
+  margin: 0 0 0.2rem;
+  color: #9a3412;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.training-page .form-section__pill {
+  background: rgba(234, 88, 12, 0.1);
+  color: #c2410c;
+}
+
+.training-page .form-section__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.training-page .field-card {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.75rem;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.68);
+  border: 1px solid rgba(226, 232, 240, 0.92);
+}
+
+.training-page .field-card > span {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #334155;
+}
+
+.training-page .field-shell {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.training-page .form-grid input,
+.training-page .form-grid select,
+.training-page .form-grid textarea,
+.training-page .session-filters input,
+.training-page .session-filters select {
+  width: 100%;
+  min-height: 2.7rem;
+  padding: 0.72rem 0.9rem;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #0f172a;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+}
+
+.training-page .form-grid textarea {
+  min-height: 7.5rem;
+  resize: vertical;
+}
+
+.training-page .form-grid input:focus,
+.training-page .form-grid select:focus,
+.training-page .form-grid textarea:focus,
+.training-page .session-filters input:focus,
+.training-page .session-filters select:focus {
+  outline: none;
+  border-color: rgba(20, 71, 230, 0.3);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.78),
+    0 0 0 0.18rem rgba(20, 71, 230, 0.08);
+}
+
+.training-page .exercise-stack {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.training-page .exercise-stack__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.9rem;
+  padding: 0.15rem 0.1rem;
+}
+
+.training-page .exercise-card {
+  display: grid;
+  gap: 0.9rem;
+  padding: 0.95rem;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.74);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
+}
+
+.training-page .exercise-card__topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.9rem;
+}
+
+.training-page .exercise-card__topline strong {
+  display: block;
+  font-size: 0.98rem;
+}
+
+.training-page .exercise-card__topline p {
+  margin: 0.18rem 0 0;
+  color: #64748b;
+  font-size: 0.88rem;
+}
+
+.training-page .exercise-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.55rem;
+}
+
+.training-page .exercise-card__body {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.training-page .client-field {
+  align-self: start;
+}
+
+.training-page .field-switch {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  padding: 0.2rem;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.12);
+  width: fit-content;
+}
+
+.training-page .primary-btn,
+.training-page .secondary-btn,
+.training-page .ghost-btn,
+.training-page .danger-btn {
+  min-height: 2.6rem;
+  border-radius: 14px;
+  padding: 0.62rem 0.95rem;
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.training-page .primary-btn {
+  background: linear-gradient(90deg, #ea580c, #f97316);
+  box-shadow: 0 10px 24px rgba(234, 88, 12, 0.22);
+}
+
+.training-page .secondary-btn,
+.training-page .ghost-btn,
+.training-page .danger-btn {
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.training-page .secondary-btn {
+  background: rgba(15, 23, 42, 0.05);
+  color: #0f172a;
+}
+
+.training-page .ghost-btn {
+  padding: 0.5rem 0.85rem;
+  color: #475569;
+  font-weight: 700;
+}
+
+.training-page .ghost-btn.is-active {
+  background: #0f172a;
+  border-color: #0f172a;
+  color: #fff;
+  box-shadow: none;
+}
+
+.training-page .danger-btn {
+  border-color: rgba(248, 113, 113, 0.35);
+  color: #b91c1c;
+  background: rgba(254, 242, 242, 0.72);
+}
+
+.training-page .exercise-toggle {
+  min-width: 6rem;
+}
+
+.training-page .form-intro strong {
+  color: #0f172a;
+}
+
+.training-page .form-actions,
+.training-page .training-actions,
+.training-page .exercise-history-line,
+.training-page .media-preview-card__header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  align-items: center;
+}
+
+.training-page .session-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10.5rem, 1fr));
+  gap: 0.85rem;
+  margin-bottom: 1rem;
+  padding: 0.95rem;
+  border: 1px solid rgba(226, 232, 240, 0.92);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55);
+}
+
+.training-page .session-filters label {
+  display: grid;
+  gap: 0.42rem;
+}
+
+.training-page .session-filters label span {
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  color: #9a3412;
+}
+
+.training-page .session-filters__search {
+  grid-column: span 2;
+}
+
+.training-page .session-filters select {
+  appearance: none;
+  padding-right: 2.6rem;
+  background-image:
+    linear-gradient(45deg, transparent 50%, #c2410c 50%),
+    linear-gradient(135deg, #c2410c 50%, transparent 50%);
+  background-position:
+    calc(100% - 1.1rem) calc(50% - 0.08rem),
+    calc(100% - 0.82rem) calc(50% - 0.08rem);
+  background-size: 0.38rem 0.38rem, 0.38rem 0.38rem;
+  background-repeat: no-repeat;
+}
+
+.training-page .session-filters input::placeholder {
+  color: #94a3b8;
+}
+
+.training-page .session-filters__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.training-page .session-owner-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin: 0.45rem 0 0.8rem;
+}
+
+.training-page .session-owner-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.45rem 0.75rem;
+  border-radius: 999px;
+  background: rgba(248, 250, 252, 0.94);
+  border: 1px solid rgba(191, 219, 254, 0.65);
+  color: #0f172a;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.training-page .session-owner-pill strong {
+  color: #1d4ed8;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+}
+
+.training-page .tag-row {
+  gap: 0.45rem;
+  margin-top: 0;
+}
+
+.training-page .tag-row span {
+  padding: 0.38rem 0.68rem;
+  border-radius: 999px;
+  background: #fff7ed;
+  color: #c2410c;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.training-page .media-preview-backdrop {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  background: rgba(8, 15, 26, 0.82);
+  z-index: 20;
+}
+
+.training-page .media-preview-card {
+  width: min(100%, 52rem);
+  display: grid;
+  gap: 1rem;
+  padding: 1.15rem;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 20px;
+  background: #08101c;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
+}
+
+.training-page .media-preview-player {
+  width: 100%;
+  max-height: 70vh;
+  border-radius: 16px;
+  background: #000;
+}
+
 @media (max-width: 960px) {
   .panel-grid,
   .program-layout,
@@ -326,5 +776,36 @@ textarea {
   .session-item {
     flex-direction: column;
     align-items: start;
+  }
+
+  .training-page .training-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .training-page .catalog-card {
+    position: static;
+  }
+}
+
+@media (max-width: 720px) {
+  .training-page .page-header h1 {
+    max-width: none;
+  }
+
+  .training-page .form-section__grid,
+  .training-page .exercise-card__body {
+    grid-template-columns: 1fr;
+  }
+
+  .training-page .session-filters__search {
+    grid-column: span 1;
+  }
+
+  .training-page .form-section__header,
+  .training-page .exercise-stack__header,
+  .training-page .exercise-card__topline,
+  .training-page .catalog-group__header {
+    flex-direction: column;
+    align-items: stretch;
   }
 }

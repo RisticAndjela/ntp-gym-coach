@@ -54,8 +54,24 @@ impl TrainingStatus {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 struct TrainingSet {
-    reps: u32,
-    load_kg: f32,
+    #[serde(default)]
+    reps: Option<u32>,
+    #[serde(default)]
+    load_kg: Option<f32>,
+    #[serde(default)]
+    duration_min: Option<f32>,
+    #[serde(default)]
+    distance_km: Option<f32>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Default)]
+#[serde(rename_all = "snake_case")]
+enum TrackingMode {
+    #[default]
+    LoadReps,
+    RepsOnly,
+    Duration,
+    DistanceDuration,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -69,6 +85,8 @@ struct MediaAsset {
 struct Exercise {
     name: String,
     exercise_type: String,
+    #[serde(default)]
+    tracking_mode: TrackingMode,
     performed_on: NaiveDate,
     sets: Vec<TrainingSet>,
     #[serde(default)]
@@ -84,7 +102,7 @@ struct ExerciseGroup {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 struct TrainingSession {
     id: Uuid,
-    coach_id: Uuid,
+    coach_id: Option<Uuid>,
     client_id: Uuid,
     category: String,
     status: TrainingStatus,
@@ -94,7 +112,7 @@ struct TrainingSession {
 
 #[derive(Debug, Deserialize)]
 struct CreateTrainingRequest {
-    coach_id: Uuid,
+    coach_id: Option<Uuid>,
     client_id: Uuid,
     category: String,
     status: TrainingStatus,
@@ -110,14 +128,17 @@ struct TrainingCatalog {
 
 #[derive(Clone)]
 struct AppState {
-    db: Arc<Client>,
+    database_url: Arc<String>,
 }
 
 #[tokio::main]
 async fn main() {
-    let db = Arc::new(connect_db().await);
-    init_db(db.as_ref()).await.unwrap();
-    let state = AppState { db };
+    let database_url = env::var("DATABASE_URL").unwrap_or_else(|_| DEFAULT_DATABASE_URL.to_string());
+    let db = connect_db(&database_url).await.unwrap();
+    init_db(&db).await.unwrap();
+    let state = AppState {
+        database_url: Arc::new(database_url),
+    };
 
     let app = Router::new()
         .route("/health", get(health))
@@ -139,29 +160,30 @@ async fn main() {
         .unwrap();
 }
 
-async fn connect_db() -> Client {
-    let database_url =
-        env::var("DATABASE_URL").unwrap_or_else(|_| DEFAULT_DATABASE_URL.to_string());
-
+async fn connect_db(database_url: &str) -> Result<Client, tokio_postgres::Error> {
     for attempt in 1..=20 {
-        match tokio_postgres::connect(&database_url, NoTls).await {
+        match tokio_postgres::connect(database_url, NoTls).await {
             Ok((client, connection)) => {
                 tokio::spawn(async move {
                     if let Err(error) = connection.await {
                         eprintln!("Training DB connection error: {error}");
                     }
                 });
-                return client;
+                return Ok(client);
             }
             Err(error) if attempt < 20 => {
                 eprintln!("Training DB connect attempt {attempt} failed: {error}");
                 sleep(TokioDuration::from_secs(2)).await;
             }
-            Err(error) => panic!("Training DB connection failed: {error}"),
+            Err(error) => return Err(error),
         }
     }
 
     unreachable!()
+}
+
+async fn db_client(state: &AppState) -> Result<Client, tokio_postgres::Error> {
+    connect_db(state.database_url.as_str()).await
 }
 
 async fn init_db(db: &Client) -> Result<(), tokio_postgres::Error> {
@@ -169,13 +191,21 @@ async fn init_db(db: &Client) -> Result<(), tokio_postgres::Error> {
         "
         CREATE TABLE IF NOT EXISTS training_sessions (
             id UUID PRIMARY KEY,
-            coach_id UUID NOT NULL,
+            coach_id UUID,
             client_id UUID NOT NULL,
             category TEXT NOT NULL,
             status TEXT NOT NULL,
             notes TEXT NOT NULL,
             exercise_groups JSONB NOT NULL
         );
+        ",
+    )
+    .await?;
+
+    db.batch_execute(
+        "
+        ALTER TABLE training_sessions
+        ALTER COLUMN coach_id DROP NOT NULL;
         ",
     )
     .await?;
@@ -234,8 +264,8 @@ async fn health() -> Json<ServiceStatus> {
 }
 
 async fn list_trainings(State(state): State<AppState>) -> Result<Json<Vec<TrainingSession>>, StatusCode> {
-    let rows = state
-        .db
+    let db = db_client(&state).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let rows = db
         .query(
             "
             SELECT id, coach_id, client_id, category, status, notes, exercise_groups
@@ -260,8 +290,8 @@ async fn get_training(
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<TrainingSession>, StatusCode> {
-    let row = state
-        .db
+    let db = db_client(&state).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let row = db
         .query_opt(
             "
             SELECT id, coach_id, client_id, category, status, notes, exercise_groups
@@ -283,8 +313,8 @@ async fn list_trainings_for_client(
     State(state): State<AppState>,
     Path(client_id): Path<Uuid>,
 ) -> Result<Json<Vec<TrainingSession>>, StatusCode> {
-    let rows = state
-        .db
+    let db = db_client(&state).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let rows = db
         .query(
             "
             SELECT id, coach_id, client_id, category, status, notes, exercise_groups
@@ -310,12 +340,12 @@ async fn create_training(
     State(state): State<AppState>,
     Json(payload): Json<CreateTrainingRequest>,
 ) -> Result<(StatusCode, Json<TrainingSession>), StatusCode> {
-    let training = normalize_training_payload(state.db.as_ref(), payload)
+    let db = db_client(&state).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let training = normalize_training_payload(&db, payload)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    state
-        .db
+    db
         .execute(
             "
             INSERT INTO training_sessions (id, coach_id, client_id, category, status, notes, exercise_groups)
@@ -342,13 +372,13 @@ async fn update_training(
     Path(id): Path<Uuid>,
     Json(payload): Json<CreateTrainingRequest>,
 ) -> Result<Json<TrainingSession>, StatusCode> {
-    let updated_training = normalize_training_payload(state.db.as_ref(), payload)
+    let db = db_client(&state).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let updated_training = normalize_training_payload(&db, payload)
         .await
         .map(|training| TrainingSession { id, ..training })
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let affected = state
-        .db
+    let affected = db
         .execute(
             "
             UPDATE training_sessions
@@ -401,6 +431,7 @@ async fn normalize_training_payload(
                         &exercise.exercise_type,
                         &catalog.exercise_types,
                     ),
+                    tracking_mode: exercise.tracking_mode,
                     performed_on: exercise.performed_on,
                     sets: exercise.sets,
                     media: exercise.media,
@@ -424,8 +455,8 @@ async fn delete_training(
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
-    let affected = state
-        .db
+    let db = db_client(&state).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let affected = db
         .execute("DELETE FROM training_sessions WHERE id = $1", &[&id])
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -438,8 +469,8 @@ async fn delete_training(
 }
 
 async fn get_catalog(State(state): State<AppState>) -> Result<Json<TrainingCatalog>, StatusCode> {
-    let rows = state
-        .db
+    let db = db_client(&state).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let rows = db
         .query(
             "
             SELECT id, coach_id, client_id, category, status, notes, exercise_groups
@@ -485,7 +516,7 @@ fn seed_trainings() -> Vec<TrainingSession> {
     vec![
         TrainingSession {
             id: Uuid::parse_str(DEMO_TRAINING_ONE_ID).unwrap(),
-            coach_id,
+            coach_id: Some(coach_id),
             client_id,
             category: "Upper Body Strength".into(),
             status: TrainingStatus::Completed,
@@ -495,11 +526,12 @@ fn seed_trainings() -> Vec<TrainingSession> {
                 exercises: vec![Exercise {
                     name: "Bench Press".into(),
                     exercise_type: "compound".into(),
+                    tracking_mode: TrackingMode::LoadReps,
                     performed_on: NaiveDate::from_ymd_opt(2026, 4, 10).unwrap(),
                     sets: vec![
-                        TrainingSet { reps: 8, load_kg: 60.0 },
-                        TrainingSet { reps: 8, load_kg: 62.5 },
-                        TrainingSet { reps: 6, load_kg: 65.0 },
+                        TrainingSet { reps: Some(8), load_kg: Some(60.0), duration_min: None, distance_km: None },
+                        TrainingSet { reps: Some(8), load_kg: Some(62.5), duration_min: None, distance_km: None },
+                        TrainingSet { reps: Some(6), load_kg: Some(65.0), duration_min: None, distance_km: None },
                     ],
                     media: vec![MediaAsset {
                         title: "Bench Press Demo".into(),
@@ -511,7 +543,7 @@ fn seed_trainings() -> Vec<TrainingSession> {
         },
         TrainingSession {
             id: Uuid::parse_str(DEMO_TRAINING_TWO_ID).unwrap(),
-            coach_id,
+            coach_id: Some(coach_id),
             client_id,
             category: "Upper Body Strength".into(),
             status: TrainingStatus::Completed,
@@ -521,11 +553,12 @@ fn seed_trainings() -> Vec<TrainingSession> {
                 exercises: vec![Exercise {
                     name: "Bench Press".into(),
                     exercise_type: "compound".into(),
+                    tracking_mode: TrackingMode::LoadReps,
                     performed_on: NaiveDate::from_ymd_opt(2026, 4, 24).unwrap(),
                     sets: vec![
-                        TrainingSet { reps: 8, load_kg: 62.5 },
-                        TrainingSet { reps: 8, load_kg: 65.0 },
-                        TrainingSet { reps: 6, load_kg: 67.5 },
+                        TrainingSet { reps: Some(8), load_kg: Some(62.5), duration_min: None, distance_km: None },
+                        TrainingSet { reps: Some(8), load_kg: Some(65.0), duration_min: None, distance_km: None },
+                        TrainingSet { reps: Some(6), load_kg: Some(67.5), duration_min: None, distance_km: None },
                     ],
                     media: vec![MediaAsset {
                         title: "Bench Press Form Check".into(),

@@ -6,6 +6,9 @@
     </div>
   </div>
 
+  @if (message()) {
+    <p class="success-banner">{{ message() }}</p>
+  }
   @if (error()) {
     <p class="error-banner">{{ error() }}</p>
   }
@@ -35,6 +38,9 @@
             <p class="section-kicker">Program Detail</p>
             <h2>{{ program.title }}</h2>
             <p>{{ program.goal }}</p>
+            <p class="program-helper">
+              {{ isCoach() ? 'Open any day to assign it to one of your clients with a date.' : 'Open any day to save it to your own plan with a date.' }}
+            </p>
           </div>
           <button class="export-btn" type="button" (click)="downloadProgramPdf(program)">
             Download PDF
@@ -45,7 +51,29 @@
             <h3>Week {{ week.week }}</h3>
             @for (day of week.days; track day.day) {
               <div class="day-card">
-                <strong>Day {{ day.day }} · {{ day.title }}</strong>
+                <div class="day-card__header">
+                  <strong>Day {{ day.day }} - {{ day.title }}</strong>
+                  @if (isClient()) {
+                    <button
+                      class="secondary-btn"
+                      type="button"
+                      [disabled]="isSavingDay(program.id, week.week, day.day)"
+                      (click)="openPlanner(program, week, day)"
+                    >
+                      {{ isSavingDay(program.id, week.week, day.day) ? 'Saving...' : 'Plan For Me' }}
+                    </button>
+                  }
+                  @if (isCoach()) {
+                    <button
+                      class="secondary-btn"
+                      type="button"
+                      [disabled]="isSavingDay(program.id, week.week, day.day)"
+                      (click)="openPlanner(program, week, day)"
+                    >
+                      {{ isSavingDay(program.id, week.week, day.day) ? 'Saving...' : 'Assign To Client' }}
+                    </button>
+                  }
+                </div>
                 @for (exercise of day.exercises; track exercise.name) {
                   <div class="exercise-line exercise-line--stacked">
                     <div class="exercise-line__summary">
@@ -76,6 +104,85 @@
       }
     </article>
   </div>
+
+  @if (plannerState(); as planner) {
+    <div class="media-preview-backdrop" (click)="closePlanner()">
+      <div class="media-preview-card planner-card" (click)="$event.stopPropagation()">
+        <div class="media-preview-card__header">
+          <div>
+            <strong>{{ planner.day.title }}</strong>
+            <p>Week {{ planner.week.week }}, day {{ planner.day.day }} from {{ planner.program.title }}</p>
+          </div>
+          <button class="ghost-btn" type="button" (click)="closePlanner()">Close</button>
+        </div>
+
+        <label class="planner-field">
+          <span>Training date</span>
+          <input type="date" [value]="selectedDate()" (input)="updateSelectedDate($any($event.target).value)" />
+        </label>
+
+        @if (isClient()) {
+          <div class="planner-field">
+            <span>Save as</span>
+            <div class="selection-grid">
+              <button
+                class="choice-chip"
+                type="button"
+                [class.active]="selectedCoachId() === ''"
+                (click)="selectCoach('')"
+              >
+                Individual training
+              </button>
+              @for (coach of connectedCoachProfiles(); track coach.id) {
+                <button
+                  class="choice-chip"
+                  type="button"
+                  [class.active]="selectedCoachId() === coach.id"
+                  (click)="selectCoach(coach.id)"
+                >
+                  {{ coach.full_name }}
+                </button>
+              }
+            </div>
+          </div>
+        }
+
+        @if (isCoach()) {
+          <div class="planner-field">
+            <span>Assign to client</span>
+            @if (connectedClientProfiles().length) {
+              <div class="selection-grid">
+                @for (client of connectedClientProfiles(); track client.id) {
+                  <button
+                    class="choice-chip"
+                    type="button"
+                    [class.active]="selectedClientId() === client.id"
+                    (click)="selectClient(client.id)"
+                  >
+                    {{ client.full_name }}
+                  </button>
+                }
+              </div>
+            } @else {
+              <p class="planner-empty">Connect a client first before assigning a program day.</p>
+            }
+          </div>
+        }
+
+        <div class="planner-actions">
+          <button class="secondary-btn" type="button" (click)="closePlanner()">Cancel</button>
+          <button
+            class="export-btn"
+            type="button"
+            [disabled]="isCoach() && !selectedClientId()"
+            (click)="submitPlanner()"
+          >
+            {{ isCoach() ? 'Assign Planned Training' : 'Save As Planned' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
 
   @if (previewMedia(); as media) {
     <div class="media-preview-backdrop" (click)="closeMediaPreview()">

@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
-import { forkJoin } from 'rxjs';
+import { forkJoin, of } from 'rxjs';
 
 import { ApiService } from '../core/api.service';
 import { AuthStore } from '../core/auth.store';
@@ -26,6 +26,8 @@ export class UsersPageComponent {
   readonly coachConnections = signal<CoachClientLink[]>([]);
   readonly status = signal('');
   readonly error = signal('');
+  readonly isCoach = computed(() => this.authStore.role() === 'COACH');
+  readonly isClient = computed(() => this.authStore.role() === 'CLIENT');
 
   readonly profileForm = this.fb.nonNullable.group({
     full_name: [''],
@@ -51,7 +53,7 @@ export class UsersPageComponent {
     forkJoin({
       profiles: this.api.getProfiles(),
       coaches: this.api.getCoaches(),
-      matches: this.api.getCoachMatches(userId),
+      matches: this.isClient() ? this.api.getCoachMatches(userId) : of([]),
       clientConnections: this.api.getClientConnections(userId),
       coachConnections: this.api.getCoachConnections(userId),
     }).subscribe({

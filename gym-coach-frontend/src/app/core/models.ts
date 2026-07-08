@@ -1,5 +1,6 @@
 export type UserRole = 'COACH' | 'CLIENT';
 export type TrainingStatus = 'PLANNED' | 'COMPLETED' | 'SKIPPED';
+export type TrackingMode = 'load_reps' | 'reps_only' | 'duration' | 'distance_duration';
 
 export interface Claims {
   sub: string;
@@ -46,13 +47,16 @@ export interface CoachClientLink {
 }
 
 export interface TrainingSet {
-  reps: number;
-  load_kg: number;
+  reps?: number;
+  load_kg?: number;
+  duration_min?: number;
+  distance_km?: number;
 }
 
 export interface Exercise {
   name: string;
   exercise_type: string;
+  tracking_mode: TrackingMode;
   performed_on: string;
   sets: TrainingSet[];
   media: MediaAsset[];
@@ -65,7 +69,7 @@ export interface ExerciseGroup {
 
 export interface TrainingSession {
   id: string;
-  coach_id: string;
+  coach_id: string | null;
   client_id: string;
   category: string;
   status: TrainingStatus;
@@ -115,8 +119,10 @@ export interface AnalyticsRequest {
   exercise_name: string;
   client_goals?: string[];
   progression_preference?: 'stagnation' | 'progressive_overload';
+  tracking_mode: TrackingMode;
   history: Array<{
     performed_on: string;
+    tracking_mode: TrackingMode;
     sets: TrainingSet[];
   }>;
 }
@@ -124,16 +130,22 @@ export interface AnalyticsRequest {
 export interface AnalyticsReport {
   client_id: string;
   exercise_name: string;
+  tracking_mode: TrackingMode;
   sessions_analyzed: number;
-  avg_load_kg: number;
-  avg_reps: number;
-  best_load_kg: number;
-  total_volume: number;
+  primary_metric_label: string;
+  primary_metric_unit: string;
+  secondary_metric_label: string | null;
+  secondary_metric_unit: string | null;
+  avg_primary_metric: number;
+  avg_secondary_metric: number | null;
+  best_primary_metric: number;
+  total_output: number;
+  total_output_label: string;
   avg_sets_per_session: number;
-  avg_volume_per_session: number;
+  avg_output_per_session: number;
   typical_sets: number;
-  typical_reps: number;
-  typical_load_kg: number;
+  typical_primary_metric: number;
+  typical_secondary_metric: number | null;
   goal_focus: string;
   progression_preference: string;
   trend: string;
@@ -141,9 +153,14 @@ export interface AnalyticsReport {
 
 export interface RecommendationResponse {
   exercise_name: string;
+  tracking_mode: TrackingMode;
   recommended_sets: number;
-  recommended_load_kg: number;
-  recommended_reps: number;
+  primary_metric_label: string;
+  primary_metric_unit: string;
+  secondary_metric_label: string | null;
+  secondary_metric_unit: string | null;
+  recommended_primary_metric: number;
+  recommended_secondary_metric: number | null;
   goal_focus: string;
   progression_preference: string;
   rationale: string;

@@ -1,4 +1,4 @@
-<section class="page-shell">
+<section class="page-shell training-page">
   <div class="page-header">
     <div>
       <p class="section-kicker">Training Service</p>
@@ -13,100 +13,267 @@
     <p class="error-banner">{{ error() }}</p>
   }
 
-  <div class="panel-grid">
-    <article class="glass-card">
+  <div class="panel-grid training-layout">
+    <article class="glass-card training-form-card">
       <p class="section-kicker">Create Session</p>
       <h2>{{ editingTrainingId() ? 'Edit training' : 'Create training' }}</h2>
+      <p class="form-intro">
+        Pick existing values from the catalog or switch to <strong>New</strong> when you want to add your own.
+      </p>
       <form [formGroup]="trainingForm" class="form-grid" (ngSubmit)="submitTraining()">
-        <label>
-          <span>Category</span>
-          <input type="text" formControlName="category" list="category-list" />
-        </label>
-        <label>
-          <span>Status</span>
-          <select formControlName="status">
-            <option value="PLANNED">Planned</option>
-            <option value="COMPLETED">Completed</option>
-            <option value="SKIPPED">Skipped</option>
-          </select>
-        </label>
+        <div class="span-2 form-section">
+          <div class="form-section__header">
+            <div>
+              <p class="form-section__eyebrow">Session Basics</p>
+              <h3>Main details</h3>
+            </div>
+            <span class="pill form-section__pill">{{ editingTrainingId() ? 'Editing' : 'New entry' }}</span>
+          </div>
+          <div class="form-section__grid">
+            <label class="field-card">
+              <span>Category</span>
+              <div class="field-shell">
+                <div class="field-switch">
+                  <button
+                    class="ghost-btn"
+                    type="button"
+                    [class.is-active]="categoryMode() === 'select'"
+                    (click)="setCategoryMode('select')"
+                  >
+                    Select
+                  </button>
+                  <button
+                    class="ghost-btn"
+                    type="button"
+                    [class.is-active]="categoryMode() === 'input'"
+                    (click)="setCategoryMode('input')"
+                  >
+                    New
+                  </button>
+                </div>
+                @if (categoryMode() === 'select') {
+                  <select
+                    [value]="categorySelectValue()"
+                    (change)="updateCategoryValue($any($event.target).value)"
+                  >
+                    <option value="" disabled>Select category</option>
+                    @for (category of categoryOptions(); track category) {
+                      <option [value]="category">{{ category }}</option>
+                    }
+                  </select>
+                } @else {
+                  <input
+                    type="text"
+                    formControlName="category"
+                    placeholder="Enter new category"
+                  />
+                }
+              </div>
+            </label>
+            <label class="field-card">
+              <span>Status</span>
+              <div class="field-shell">
+                <select formControlName="status">
+                  <option value="PLANNED">Planned</option>
+                  <option value="COMPLETED">Completed</option>
+                  <option value="SKIPPED">Skipped</option>
+                </select>
+              </div>
+            </label>
+            <label class="field-card">
+              <span>Date</span>
+              <div class="field-shell">
+                <input type="date" formControlName="performed_on" />
+              </div>
+            </label>
+          </div>
+        </div>
         @if (isCoach()) {
-          <label>
+          <label class="field-card client-field">
             <span>Client</span>
-            <select formControlName="client_id">
-              @for (client of clientProfiles(); track client.id) {
-                <option [value]="client.id">{{ client.full_name }}</option>
-              }
-            </select>
+            <div class="field-shell">
+              <select formControlName="client_id">
+                @for (client of connectedClientProfiles(); track client.id) {
+                  <option [value]="client.id">{{ client.full_name }}</option>
+                }
+              </select>
+            </div>
           </label>
         }
-        <label>
-          <span>Date</span>
-          <input type="date" formControlName="performed_on" />
-        </label>
+        @if (isClient()) {
+          <label class="field-card client-field">
+            <span>Coach</span>
+            <div class="field-shell">
+              <select formControlName="coach_id">
+                <option value="">Individual training</option>
+                @for (coach of connectedCoachProfiles(); track coach.id) {
+                  <option [value]="coach.id">{{ coach.full_name }}</option>
+                }
+              </select>
+            </div>
+          </label>
+        }
         <div class="span-2 exercise-stack" formArrayName="exercise_groups">
           <div class="exercise-stack__header">
-            <span>Exercises</span>
+            <div>
+              <p class="form-section__eyebrow">Workout Builder</p>
+              <h3>Exercises</h3>
+            </div>
             <button class="secondary-btn" type="button" (click)="addExercise()">Add Exercise</button>
           </div>
           @for (exercise of exercises.controls; track $index) {
             <div class="exercise-card" [formGroupName]="$index">
               <div class="exercise-card__topline">
-                <strong>Exercise {{ $index + 1 }}</strong>
-                @if (exercises.length > 1) {
-                  <button class="ghost-btn" type="button" (click)="removeExercise($index)">
-                    Remove
+                <div>
+                  <strong>Exercise {{ $index + 1 }}</strong>
+                  <p>Choose from existing data or create a fresh entry.</p>
+                </div>
+                <div class="exercise-card__actions">
+                  <button
+                    class="ghost-btn exercise-toggle"
+                    type="button"
+                    [attr.aria-expanded]="!isExerciseCollapsed($index)"
+                    (click)="toggleExerciseCollapsed($index)"
+                  >
+                    {{ isExerciseCollapsed($index) ? 'Expand' : 'Collapse' }}
                   </button>
-                }
+                  @if (exercises.length > 1) {
+                    <button class="ghost-btn" type="button" (click)="removeExercise($index)">
+                      Remove
+                    </button>
+                  }
+                </div>
               </div>
-              <label>
-                <span>Exercise</span>
-                <input
-                  type="text"
-                  formControlName="name"
-                  [attr.list]="'exercise-name-list-' + $index"
-                />
-              </label>
-              <label>
-                <span>Exercise type</span>
-                <input
-                  type="text"
-                  formControlName="exercise_type"
-                  [attr.list]="'exercise-type-list-' + $index"
-                />
-              </label>
-              <label class="span-2">
-                <span>Sets</span>
-                <input type="text" formControlName="sets" />
-              </label>
-              @if (isCoach()) {
-                <label>
-                  <span>Video title</span>
-                  <input type="text" formControlName="video_title" />
-                </label>
-                <label>
-                  <span>Demo video URL</span>
-                  <input type="url" formControlName="video_url" placeholder="https://..." />
-                </label>
+              @if (!isExerciseCollapsed($index)) {
+                <div class="exercise-card__body">
+                  <label class="field-card">
+                    <span>Exercise</span>
+                    <div class="field-shell">
+                      <div class="field-switch">
+                        <button
+                          class="ghost-btn"
+                          type="button"
+                          [class.is-active]="exerciseFieldMode($index, 'name') === 'select'"
+                          (click)="setExerciseFieldMode($index, 'name', 'select')"
+                        >
+                          Select
+                        </button>
+                        <button
+                          class="ghost-btn"
+                          type="button"
+                          [class.is-active]="exerciseFieldMode($index, 'name') === 'input'"
+                          (click)="setExerciseFieldMode($index, 'name', 'input')"
+                        >
+                          New
+                        </button>
+                      </div>
+                      @if (exerciseFieldMode($index, 'name') === 'select') {
+                        <select
+                          [value]="exerciseSelectValue($index, 'name')"
+                          (change)="updateExerciseField($index, 'name', $any($event.target).value)"
+                        >
+                          <option value="" disabled>Select exercise</option>
+                          @for (exerciseName of exerciseNameOptions($index); track exerciseName) {
+                            <option [value]="exerciseName">{{ exerciseName }}</option>
+                          }
+                        </select>
+                      } @else {
+                        <input
+                          type="text"
+                          formControlName="name"
+                          placeholder="Enter new exercise"
+                        />
+                      }
+                    </div>
+                  </label>
+                  <label class="field-card">
+                    <span>Exercise type</span>
+                    <div class="field-shell">
+                      <div class="field-switch">
+                        <button
+                          class="ghost-btn"
+                          type="button"
+                          [class.is-active]="exerciseFieldMode($index, 'exercise_type') === 'select'"
+                          (click)="setExerciseFieldMode($index, 'exercise_type', 'select')"
+                        >
+                          Select
+                        </button>
+                        <button
+                          class="ghost-btn"
+                          type="button"
+                          [class.is-active]="exerciseFieldMode($index, 'exercise_type') === 'input'"
+                          (click)="setExerciseFieldMode($index, 'exercise_type', 'input')"
+                        >
+                          New
+                        </button>
+                      </div>
+                      @if (exerciseFieldMode($index, 'exercise_type') === 'select') {
+                        <select
+                          [value]="exerciseSelectValue($index, 'exercise_type')"
+                          (change)="updateExerciseField($index, 'exercise_type', $any($event.target).value)"
+                        >
+                          <option value="" disabled>Select exercise type</option>
+                          @for (exerciseType of exerciseTypeOptions($index); track exerciseType) {
+                            <option [value]="exerciseType">{{ exerciseType }}</option>
+                          }
+                        </select>
+                      } @else {
+                        <input
+                          type="text"
+                          formControlName="exercise_type"
+                          placeholder="Enter new exercise type"
+                        />
+                      }
+                    </div>
+                  </label>
+                  <label class="field-card">
+                    <span>Tracking mode</span>
+                    <div class="field-shell">
+                      <select
+                        [value]="exerciseTrackingMode($index)"
+                        (change)="setExerciseTrackingMode($index, $any($event.target).value)"
+                      >
+                        @for (option of trackingModeOptions(); track option.value) {
+                          <option [value]="option.value">{{ option.label }}</option>
+                        }
+                      </select>
+                    </div>
+                  </label>
+                  <label class="field-card span-2">
+                    <span>Sets</span>
+                    <div class="field-shell">
+                      <input
+                        type="text"
+                        formControlName="sets"
+                        [placeholder]="exerciseSetsPlaceholder($index)"
+                      />
+                    </div>
+                    <small>{{ exerciseSetsHelper($index) }}</small>
+                  </label>
+                  @if (isCoach()) {
+                    <label class="field-card">
+                      <span>Video title</span>
+                      <div class="field-shell">
+                        <input type="text" formControlName="video_title" />
+                      </div>
+                    </label>
+                    <label class="field-card">
+                      <span>Demo video URL</span>
+                      <div class="field-shell">
+                        <input type="url" formControlName="video_url" placeholder="https://..." />
+                      </div>
+                    </label>
+                  }
+                </div>
               }
-
-              <datalist [id]="'exercise-name-list-' + $index">
-                @for (exerciseName of exerciseNameOptions($index); track exerciseName) {
-                  <option [value]="exerciseName"></option>
-                }
-              </datalist>
-
-              <datalist [id]="'exercise-type-list-' + $index">
-                @for (exerciseType of exerciseTypeOptions($index); track exerciseType) {
-                  <option [value]="exerciseType"></option>
-                }
-              </datalist>
             </div>
           }
         </div>
-        <label class="span-2">
+        <label class="field-card span-2">
           <span>Notes</span>
-          <textarea rows="4" formControlName="notes"></textarea>
+          <div class="field-shell">
+            <textarea rows="4" formControlName="notes"></textarea>
+          </div>
         </label>
         <div class="form-actions span-2">
           <button class="primary-btn" type="submit">
@@ -117,38 +284,125 @@
           }
         </div>
       </form>
-
-      <datalist id="category-list">
-        @for (category of categoryOptions(); track category) {
-          <option [value]="category"></option>
-        }
-      </datalist>
     </article>
 
-    <article class="glass-card">
+    <article class="glass-card catalog-card">
       <p class="section-kicker">Catalog</p>
       <h2>Existing categories and exercise types</h2>
-      <div class="tag-row">
-        @for (category of catalog().categories; track category) {
-          <span>{{ category }}</span>
-        }
-      </div>
-      <div class="tag-row">
-        @for (exerciseType of catalog().exercise_types; track exerciseType) {
-          <span>{{ exerciseType }}</span>
-        }
+      <p class="catalog-copy">
+        These values feed the dropdowns above, so you can reuse common entries faster.
+      </p>
+      <div class="catalog-groups">
+        <section class="catalog-group">
+          <div class="catalog-group__header">
+            <h3>Categories</h3>
+            <span class="pill">{{ catalog().categories.length }}</span>
+          </div>
+          <div class="tag-row">
+            @for (category of catalog().categories; track category) {
+              <span>{{ category }}</span>
+            }
+          </div>
+        </section>
+        <section class="catalog-group">
+          <div class="catalog-group__header">
+            <h3>Exercise types</h3>
+            <span class="pill">{{ catalog().exercise_types.length }}</span>
+          </div>
+          <div class="tag-row">
+            @for (exerciseType of catalog().exercise_types; track exerciseType) {
+              <span>{{ exerciseType }}</span>
+            }
+          </div>
+        </section>
       </div>
     </article>
   </div>
 
   <article class="glass-card">
     <p class="section-kicker">All Sessions</p>
+    <div class="session-filters">
+      <label class="session-filters__search">
+        <span>Search</span>
+        <input
+          type="text"
+          [value]="sessionSearch()"
+          placeholder="Category, exercise, note..."
+          (input)="updateSessionSearch($any($event.target).value)"
+        />
+      </label>
+      <label>
+        <span>Status</span>
+        <select
+          [value]="selectedSessionStatus()"
+          (change)="updateSessionStatus($any($event.target).value)"
+        >
+          <option value="ALL">All statuses</option>
+          <option value="PLANNED">Planned</option>
+          <option value="COMPLETED">Completed</option>
+          <option value="SKIPPED">Skipped</option>
+        </select>
+      </label>
+      <label>
+        <span>Category</span>
+        <select
+          [value]="selectedSessionCategory()"
+          (change)="updateSessionCategory($any($event.target).value)"
+        >
+          <option value="ALL">All categories</option>
+          @for (category of sessionCategoryOptions(); track category) {
+            <option [value]="category">{{ category }}</option>
+          }
+        </select>
+      </label>
+      <label>
+        <span>Client</span>
+        <select
+          [value]="selectedSessionClientId()"
+          (change)="updateSessionClient($any($event.target).value)"
+        >
+          <option value="ALL">All clients</option>
+          @for (client of sessionClientOptions(); track client.id) {
+            <option [value]="client.id">{{ client.full_name }}</option>
+          }
+        </select>
+      </label>
+      <label>
+        <span>Coach</span>
+        <select
+          [value]="selectedSessionCoachId()"
+          (change)="updateSessionCoach($any($event.target).value)"
+        >
+          <option value="ALL">All coaches</option>
+          <option [value]="individualTrainingFilterValue()">Individual training</option>
+          @for (coach of sessionCoachOptions(); track coach.id) {
+            <option [value]="coach.id">{{ coach.full_name }}</option>
+          }
+        </select>
+      </label>
+      <div class="session-filters__actions">
+        <span class="pill">{{ filteredTrainings().length }} / {{ trainings().length }}</span>
+        <button class="secondary-btn" type="button" (click)="resetSessionFilters()">
+          Reset Filters
+        </button>
+      </div>
+    </div>
     <div class="stack-list">
-      @for (training of trainings(); track training.id) {
+      @for (training of filteredTrainings(); track training.id) {
         <div class="list-card">
           <div class="coach-topline">
             <strong>{{ training.category }}</strong>
             <span class="pill">{{ training.status }}</span>
+          </div>
+          <div class="session-owner-row">
+            <span class="session-owner-pill">
+              <strong>Client</strong>
+              {{ trainingClientLabel(training) }}
+            </span>
+            <span class="session-owner-pill">
+              <strong>Coach</strong>
+              {{ trainingCoachLabel(training) }}
+            </span>
           </div>
           <div class="training-actions">
             <button class="secondary-btn" type="button" (click)="startEdit(training)">
@@ -166,6 +420,7 @@
               @for (exercise of group.exercises; track exercise.name) {
                 <div class="exercise-history-line">
                   <p>{{ exercise.name }} - {{ exercise.sets.length }} sets</p>
+                  <p>{{ exerciseSummary(exercise) }}</p>
                   @if (exercise.media.length) {
                     @for (asset of exercise.media; track asset.url) {
                       <button
@@ -181,6 +436,11 @@
               }
             </div>
           }
+        </div>
+      } @empty {
+        <div class="list-card">
+          <strong>No sessions match the selected filters.</strong>
+          <p>Try broadening the search or reset the filters.</p>
         </div>
       }
     </div>

@@ -10,6 +10,21 @@
   margin-bottom: 1rem;
 }
 
+.program-helper {
+  max-width: 38rem;
+  margin-top: 0.5rem;
+  color: rgba(226, 232, 240, 0.78);
+}
+
+.day-card__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
 .exercise-line--stacked {
   display: grid;
   gap: 0.75rem;
@@ -49,6 +64,13 @@
   padding: 0.4rem 0.9rem;
 }
 
+.secondary-btn:disabled,
+.export-btn:disabled,
+.ghost-btn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
 .media-preview-backdrop {
   position: fixed;
   inset: 0;
@@ -67,7 +89,92 @@
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 1.25rem;
   background: #08101c;
+  color: #e2e8f0;
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
+}
+
+.media-preview-card a {
+  color: #7dd3fc;
+}
+
+.planner-card {
+  width: min(100%, 42rem);
+}
+
+.planner-card,
+.planner-card strong,
+.planner-card p,
+.planner-card span,
+.planner-card label,
+.planner-card button,
+.planner-card input {
+  color: #e2e8f0;
+}
+
+.planner-card .secondary-btn,
+.planner-card .ghost-btn {
+  background: rgba(255, 255, 255, 0.04);
+  color: #e2e8f0;
+}
+
+.planner-card .export-btn {
+  color: #f8fafc;
+}
+
+.planner-field {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.planner-field span {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.planner-field input {
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.04);
+  color: inherit;
+  color-scheme: dark;
+  padding: 0.8rem 1rem;
+}
+
+.selection-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.choice-chip {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #e2e8f0;
+  cursor: pointer;
+  padding: 0.7rem 1rem;
+  transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease;
+}
+
+.choice-chip.active {
+  border-color: rgba(72, 202, 228, 0.6);
+  background:
+    linear-gradient(135deg, rgba(72, 202, 228, 0.18), rgba(255, 183, 3, 0.16)),
+    rgba(255, 255, 255, 0.06);
+  transform: translateY(-1px);
+}
+
+.planner-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.planner-empty {
+  margin: 0;
+  color: rgba(226, 232, 240, 0.74);
 }
 
 .media-preview-player {

@@ -14,6 +14,17 @@
     <article class="glass-card">
       <p class="section-kicker">Exercise Selection</p>
       <form [formGroup]="form" class="form-grid" (ngSubmit)="runAnalysis()">
+        @if (isCoach()) {
+          <label>
+            <span>Client</span>
+            <select formControlName="client_id" (change)="selectClient($any($event.target).value)">
+              <option value="">Choose a client</option>
+              @for (client of connectedClientProfiles(); track client.id) {
+                <option [value]="client.id">{{ client.full_name }}</option>
+              }
+            </select>
+          </label>
+        }
         <label>
           <span>Exercise</span>
           <select formControlName="exercise_name">
@@ -29,7 +40,7 @@
             <option value="stagnation">Hold current level</option>
           </select>
         </label>
-        <button class="primary-btn" type="submit">Refresh Analysis</button>
+        <button class="primary-btn" type="submit" [disabled]="!exerciseNames().length">Refresh Analysis</button>
       </form>
     </article>
 
@@ -43,13 +54,15 @@
             <strong>{{ item.recommended_sets }}</strong>
           </div>
           <div class="metric-card">
-            <span>Recommended load</span>
-            <strong>{{ item.recommended_load_kg }} kg</strong>
+            <span>{{ item.primary_metric_label }}</span>
+            <strong>{{ metricValue(item.recommended_primary_metric, item.primary_metric_unit) }}</strong>
           </div>
-          <div class="metric-card">
-            <span>Target reps</span>
-            <strong>{{ item.recommended_reps }}</strong>
-          </div>
+          @if (item.secondary_metric_label) {
+            <div class="metric-card">
+              <span>{{ item.secondary_metric_label }}</span>
+              <strong>{{ metricValue(item.recommended_secondary_metric, item.secondary_metric_unit) }}</strong>
+            </div>
+          }
           <div class="metric-card">
             <span>Goal focus</span>
             <strong>{{ item.goal_focus }}</strong>
@@ -62,7 +75,13 @@
     </article>
   </div>
 
-  <app-progress-chart [labels]="chartData().labels" [values]="chartData().values" />
+  <app-progress-chart
+    [labels]="chartData().labels"
+    [values]="chartData().values"
+    [recommendationValue]="chartData().recommendationValue"
+    [metricTitle]="chartData().metricTitle"
+    [metricUnit]="chartData().metricUnit"
+  />
 
   <article class="glass-card">
     <p class="section-kicker">Report</p>
@@ -77,20 +96,22 @@
             <strong>{{ item.typical_sets }}</strong>
           </div>
           <div class="metric-card">
-            <span>Typical load</span>
-            <strong>{{ item.typical_load_kg }} kg</strong>
+            <span>Typical {{ item.primary_metric_label }}</span>
+            <strong>{{ metricValue(item.typical_primary_metric, item.primary_metric_unit) }}</strong>
+          </div>
+          @if (item.secondary_metric_label) {
+            <div class="metric-card">
+              <span>Typical {{ item.secondary_metric_label }}</span>
+              <strong>{{ metricValue(item.typical_secondary_metric, item.secondary_metric_unit) }}</strong>
+            </div>
+          }
+          <div class="metric-card">
+            <span>Best {{ item.primary_metric_label }}</span>
+            <strong>{{ metricValue(item.best_primary_metric, item.primary_metric_unit) }}</strong>
           </div>
           <div class="metric-card">
-            <span>Typical reps</span>
-            <strong>{{ item.typical_reps }}</strong>
-          </div>
-          <div class="metric-card">
-            <span>Best load</span>
-            <strong>{{ item.best_load_kg }} kg</strong>
-          </div>
-          <div class="metric-card">
-            <span>Avg volume/session</span>
-            <strong>{{ item.avg_volume_per_session }}</strong>
+            <span>{{ item.total_output_label }}/session</span>
+            <strong>{{ metricValue(item.avg_output_per_session, null) }}</strong>
           </div>
           <div class="metric-card">
             <span>Trend</span>

@@ -90,14 +90,17 @@ struct CoachMatch {
 
 #[derive(Clone)]
 struct AppState {
-    db: Arc<Client>,
+    database_url: Arc<String>,
 }
 
 #[tokio::main]
 async fn main() {
-    let db = Arc::new(connect_db().await);
-    init_db(db.as_ref()).await.unwrap();
-    let state = AppState { db };
+    let database_url = env::var("DATABASE_URL").unwrap_or_else(|_| DEFAULT_DATABASE_URL.to_string());
+    let db = connect_db(&database_url).await.unwrap();
+    init_db(&db).await.unwrap();
+    let state = AppState {
+        database_url: Arc::new(database_url),
+    };
 
     let app = Router::new()
         .route("/health", get(health))
@@ -119,29 +122,30 @@ async fn main() {
         .unwrap();
 }
 
-async fn connect_db() -> Client {
-    let database_url =
-        env::var("DATABASE_URL").unwrap_or_else(|_| DEFAULT_DATABASE_URL.to_string());
-
+async fn connect_db(database_url: &str) -> Result<Client, tokio_postgres::Error> {
     for attempt in 1..=20 {
-        match tokio_postgres::connect(&database_url, NoTls).await {
+        match tokio_postgres::connect(database_url, NoTls).await {
             Ok((client, connection)) => {
                 tokio::spawn(async move {
                     if let Err(error) = connection.await {
                         eprintln!("User DB connection error: {error}");
                     }
                 });
-                return client;
+                return Ok(client);
             }
             Err(error) if attempt < 20 => {
                 eprintln!("User DB connect attempt {attempt} failed: {error}");
                 sleep(TokioDuration::from_secs(2)).await;
             }
-            Err(error) => panic!("User DB connection failed: {error}"),
+            Err(error) => return Err(error),
         }
     }
 
     unreachable!()
+}
+
+async fn db_client(state: &AppState) -> Result<Client, tokio_postgres::Error> {
+    connect_db(state.database_url.as_str()).await
 }
 
 async fn init_db(db: &Client) -> Result<(), tokio_postgres::Error> {
@@ -213,8 +217,8 @@ async fn health() -> Json<ServiceStatus> {
 }
 
 async fn list_profiles(State(state): State<AppState>) -> Result<Json<Vec<UserProfile>>, StatusCode> {
-    let rows = state
-        .db
+    let db = db_client(&state).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let rows = db
         .query(
             "
             SELECT id, full_name, email, role, goals, offers, bio, created_at
@@ -239,8 +243,8 @@ async fn get_profile(
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<UserProfile>, StatusCode> {
-    let row = state
-        .db
+    let db = db_client(&state).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let row = db
         .query_opt(
             "
             SELECT id, full_name, email, role, goals, offers, bio, created_at
@@ -263,8 +267,8 @@ async fn update_profile(
     Path(id): Path<Uuid>,
     Json(payload): Json<UpdateProfileRequest>,
 ) -> Result<Json<UserProfile>, StatusCode> {
-    let current = state
-        .db
+    let db = db_client(&state).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let current = db
         .query_opt(
             "
             SELECT id, full_name, email, role, goals, offers, bio, created_at
@@ -293,8 +297,7 @@ async fn update_profile(
         profile.bio = bio;
     }
 
-    state
-        .db
+    db
         .execute(
             "
             UPDATE user_profiles
@@ -316,8 +319,8 @@ async fn update_profile(
 }
 
 async fn list_coaches(State(state): State<AppState>) -> Result<Json<Vec<UserProfile>>, StatusCode> {
-    let rows = state
-        .db
+    let db = db_client(&state).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let rows = db
         .query(
             "
             SELECT id, full_name, email, role, goals, offers, bio, created_at
@@ -343,8 +346,8 @@ async fn match_coaches(
     State(state): State<AppState>,
     Path(client_id): Path<Uuid>,
 ) -> Result<Json<Vec<CoachMatch>>, StatusCode> {
-    let rows = state
-        .db
+    let db = db_client(&state).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let rows = db
         .query(
             "
             SELECT id, full_name, email, role, goals, offers, bio, created_at
@@ -394,8 +397,8 @@ async fn create_connection(
     State(state): State<AppState>,
     Json(payload): Json<CreateConnectionRequest>,
 ) -> Result<(StatusCode, Json<CoachClientLink>), StatusCode> {
-    let coach_row = state
-        .db
+    let db = db_client(&state).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let coach_row = db
         .query_opt(
             "
             SELECT id, full_name, email, role, goals, offers, bio, created_at
@@ -407,8 +410,7 @@ async fn create_connection(
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
         .ok_or(StatusCode::NOT_FOUND)?;
-    let client_row = state
-        .db
+    let client_row = db
         .query_opt(
             "
             SELECT id, full_name, email, role, goals, offers, bio, created_at
@@ -434,8 +436,7 @@ async fn create_connection(
         created_at: Utc::now(),
     };
 
-    let inserted = state
-        .db
+    let inserted = db
         .execute(
             "
             INSERT INTO coach_client_links (coach_id, client_id, created_at)
@@ -458,8 +459,8 @@ async fn get_clients_for_coach(
     State(state): State<AppState>,
     Path(coach_id): Path<Uuid>,
 ) -> Result<Json<Vec<CoachClientLink>>, StatusCode> {
-    let rows = state
-        .db
+    let db = db_client(&state).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let rows = db
         .query(
             "
             SELECT coach_id, client_id, created_at
@@ -479,8 +480,8 @@ async fn get_coach_for_client(
     State(state): State<AppState>,
     Path(client_id): Path<Uuid>,
 ) -> Result<Json<Vec<CoachClientLink>>, StatusCode> {
-    let rows = state
-        .db
+    let db = db_client(&state).await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let rows = db
         .query(
             "
             SELECT coach_id, client_id, created_at

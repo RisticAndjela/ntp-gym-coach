@@ -1,10 +1,10 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
-import { forkJoin } from 'rxjs';
+import { forkJoin, of } from 'rxjs';
 
 import { ApiService } from '../core/api.service';
 import { AuthStore } from '../core/auth.store';
-import { TrainingSession, UserProfile } from '../core/models';
+import { CoachClientLink, TrainingSession, UserProfile } from '../core/models';
 
 interface CalendarTrainingEntry {
   training: TrainingSession;
@@ -42,11 +42,14 @@ export class DashboardPageComponent {
   readonly loading = signal(true);
   readonly profiles = signal<UserProfile[]>([]);
   readonly trainings = signal<TrainingSession[]>([]);
+  readonly coachConnections = signal<CoachClientLink[]>([]);
   readonly programCount = signal(0);
   readonly programTitle = signal('');
   readonly visibleMonthOffset = signal(0);
   readonly selectedDayKey = signal(this.toDayKey(new Date()));
   readonly error = signal('');
+  readonly isCoach = computed(() => this.authStore.role() === 'COACH');
+  readonly isClient = computed(() => this.authStore.role() === 'CLIENT');
 
   readonly currentProfile = computed(() =>
     this.profiles().find((profile) => profile.id === this.authStore.userId()) ?? null,
@@ -177,14 +180,33 @@ export class DashboardPageComponent {
   readonly selectedDaySessions = computed(() => this.selectedDay()?.trainings ?? []);
 
   constructor() {
-    forkJoin({
-      profiles: this.api.getProfiles(),
-      trainings: this.api.getTrainings(),
-      programs: this.api.getPrograms(),
-    }).subscribe({
-      next: ({ profiles, trainings, programs }) => {
+    const userId = this.authStore.userId();
+    const loadRequest = this.isClient() && userId
+      ? forkJoin({
+          profiles: this.api.getProfiles(),
+          trainings: this.api.getClientTrainings(userId),
+          programs: this.api.getPrograms(),
+          coachConnections: of([] as CoachClientLink[]),
+        })
+      : this.isCoach() && userId
+      ? forkJoin({
+          profiles: this.api.getProfiles(),
+          trainings: this.api.getTrainings(),
+          programs: this.api.getPrograms(),
+          coachConnections: this.api.getCoachConnections(userId),
+        })
+      : forkJoin({
+          profiles: this.api.getProfiles(),
+          trainings: this.api.getTrainings(),
+          programs: this.api.getPrograms(),
+          coachConnections: of([] as CoachClientLink[]),
+        });
+
+    loadRequest.subscribe({
+      next: ({ profiles, trainings, programs, coachConnections }) => {
         this.profiles.set(profiles);
-        this.trainings.set(trainings);
+        this.coachConnections.set(coachConnections);
+        this.trainings.set(this.filterVisibleTrainings(trainings, coachConnections, userId));
         this.programCount.set(programs.length);
         this.programTitle.set(programs[0]?.title ?? '');
       },
@@ -233,6 +255,32 @@ export class DashboardPageComponent {
     return 'planned';
   }
 
+  trainingAudienceLabel(training: TrainingSession): string {
+    const currentUserId = this.authStore.userId();
+    if (training.client_id === currentUserId) {
+      return 'Me';
+    }
+
+    return this.profileName(training.client_id);
+  }
+
+  private filterVisibleTrainings(
+    trainings: TrainingSession[],
+    coachConnections: CoachClientLink[],
+    userId: string | null,
+  ): TrainingSession[] {
+    if (!this.isCoach() || !userId) {
+      return trainings;
+    }
+
+    const connectedClientIds = new Set(coachConnections.map((connection) => connection.client_id));
+    return trainings.filter(
+      (training) =>
+        training.coach_id === userId &&
+        connectedClientIds.has(training.client_id),
+    );
+  }
+
   private extractTrainingDate(training: TrainingSession): Date | null {
     const performedOn = training.exercise_groups
       .flatMap((group) => group.exercises)
@@ -256,5 +304,9 @@ export class DashboardPageComponent {
     const month = `${date.getMonth() + 1}`.padStart(2, '0');
     const day = `${date.getDate()}`.padStart(2, '0');
     return `${year}-${month}-${day}`;
+  }
+
+  private profileName(profileId: string): string {
+    return this.profiles().find((profile) => profile.id === profileId)?.full_name ?? profileId;
   }
 }

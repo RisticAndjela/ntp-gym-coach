@@ -131,6 +131,7 @@
                       {{ trainingStatusLabel(entry.training.status) }}
                     </span>
                   </div>
+                  <p><strong>Client:</strong> {{ trainingAudienceLabel(entry.training) }}</p>
                   <p>{{ entry.training.notes || 'No extra notes were added for this workout.' }}</p>
                 </div>
               }
@@ -170,34 +171,6 @@
       }
     </article>
   </div>
-
-  <article class="glass-card">
-    <div class="section-header">
-      <div>
-        <p class="section-kicker">Recent activity</p>
-        <h2>Your workouts</h2>
-      </div>
-    </div>
-    @if (recentTrainings().length) {
-      <div class="session-list">
-        @for (training of recentTrainings(); track training.id) {
-          <div class="session-item">
-            <div>
-              <strong>{{ training.category }}</strong>
-              <p>{{ training.notes || 'No extra notes were added for this session.' }}</p>
-            </div>
-            <span class="pill" [class.completed]="training.status === 'COMPLETED'" [class.skipped]="training.status === 'SKIPPED'">
-              {{ trainingStatusLabel(training.status) }}
-            </span>
-          </div>
-        }
-      </div>
-    } @else {
-      <div class="empty-state">
-        Your workouts will appear here as soon as they are available in the system.
-      </div>
-    }
-  </article>
 
   <article class="glass-card guidance-card">
     <div class="section-header">
