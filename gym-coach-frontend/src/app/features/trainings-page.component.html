@@ -16,6 +16,7 @@
   <div class="panel-grid">
     <article class="glass-card">
       <p class="section-kicker">Create Session</p>
+      <h2>{{ editingTrainingId() ? 'Edit training' : 'Create training' }}</h2>
       <form [formGroup]="trainingForm" class="form-grid" (ngSubmit)="submitTraining()">
         <label>
           <span>Category</span>
@@ -29,46 +30,97 @@
             <option value="SKIPPED">Skipped</option>
           </select>
         </label>
-        <label>
-          <span>Client</span>
-          <select formControlName="client_id">
-            @for (client of clientProfiles(); track client.id) {
-              <option [value]="client.id">{{ client.full_name }}</option>
-            }
-          </select>
-        </label>
-        <label>
-          <span>Exercise</span>
-          <input type="text" formControlName="exercise_name" />
-        </label>
-        <label>
-          <span>Exercise type</span>
-          <input type="text" formControlName="exercise_type" list="exercise-type-list" />
-        </label>
+        @if (isCoach()) {
+          <label>
+            <span>Client</span>
+            <select formControlName="client_id">
+              @for (client of clientProfiles(); track client.id) {
+                <option [value]="client.id">{{ client.full_name }}</option>
+              }
+            </select>
+          </label>
+        }
         <label>
           <span>Date</span>
           <input type="date" formControlName="performed_on" />
         </label>
-        <label class="span-2">
-          <span>Sets</span>
-          <input type="text" formControlName="sets" />
-        </label>
+        <div class="span-2 exercise-stack" formArrayName="exercise_groups">
+          <div class="exercise-stack__header">
+            <span>Exercises</span>
+            <button class="secondary-btn" type="button" (click)="addExercise()">Add Exercise</button>
+          </div>
+          @for (exercise of exercises.controls; track $index) {
+            <div class="exercise-card" [formGroupName]="$index">
+              <div class="exercise-card__topline">
+                <strong>Exercise {{ $index + 1 }}</strong>
+                @if (exercises.length > 1) {
+                  <button class="ghost-btn" type="button" (click)="removeExercise($index)">
+                    Remove
+                  </button>
+                }
+              </div>
+              <label>
+                <span>Exercise</span>
+                <input
+                  type="text"
+                  formControlName="name"
+                  [attr.list]="'exercise-name-list-' + $index"
+                />
+              </label>
+              <label>
+                <span>Exercise type</span>
+                <input
+                  type="text"
+                  formControlName="exercise_type"
+                  [attr.list]="'exercise-type-list-' + $index"
+                />
+              </label>
+              <label class="span-2">
+                <span>Sets</span>
+                <input type="text" formControlName="sets" />
+              </label>
+              @if (isCoach()) {
+                <label>
+                  <span>Video title</span>
+                  <input type="text" formControlName="video_title" />
+                </label>
+                <label>
+                  <span>Demo video URL</span>
+                  <input type="url" formControlName="video_url" placeholder="https://..." />
+                </label>
+              }
+
+              <datalist [id]="'exercise-name-list-' + $index">
+                @for (exerciseName of exerciseNameOptions($index); track exerciseName) {
+                  <option [value]="exerciseName"></option>
+                }
+              </datalist>
+
+              <datalist [id]="'exercise-type-list-' + $index">
+                @for (exerciseType of exerciseTypeOptions($index); track exerciseType) {
+                  <option [value]="exerciseType"></option>
+                }
+              </datalist>
+            </div>
+          }
+        </div>
         <label class="span-2">
           <span>Notes</span>
           <textarea rows="4" formControlName="notes"></textarea>
         </label>
-        <button class="primary-btn span-2" type="submit">Save Training</button>
+        <div class="form-actions span-2">
+          <button class="primary-btn" type="submit">
+            {{ editingTrainingId() ? 'Update Training' : 'Save Training' }}
+          </button>
+          @if (editingTrainingId()) {
+            <button class="secondary-btn" type="button" (click)="cancelEdit()">Cancel</button>
+          }
+        </div>
       </form>
 
       <datalist id="category-list">
-        @for (category of catalog().categories; track category) {
+        @for (category of categoryOptions(); track category) {
           <option [value]="category"></option>
-        }
-      </datalist>
-
-      <datalist id="exercise-type-list">
-        @for (exerciseType of catalog().exercise_types; track exerciseType) {
-          <option [value]="exerciseType"></option>
         }
       </datalist>
     </article>
@@ -98,15 +150,34 @@
             <strong>{{ training.category }}</strong>
             <span class="pill">{{ training.status }}</span>
           </div>
+          <div class="training-actions">
+            <button class="secondary-btn" type="button" (click)="startEdit(training)">
+              {{ isEditing(training.id) ? 'Editing' : 'Edit' }}
+            </button>
+            <button class="danger-btn" type="button" (click)="deleteTraining(training)">
+              Delete
+            </button>
+          </div>
+          <p>{{ trainingDate(training) }}</p>
           <p>{{ training.notes }}</p>
           @for (group of training.exercise_groups; track group.name) {
             <div>
               <strong>{{ group.name }}</strong>
-              @for (exercise of group.exercises; track exercise.name + exercise.performed_on) {
-                <p>
-                  {{ exercise.name }} • {{ exercise.performed_on }} •
-                  {{ exercise.sets.length }} sets
-                </p>
+              @for (exercise of group.exercises; track exercise.name) {
+                <div class="exercise-history-line">
+                  <p>{{ exercise.name }} - {{ exercise.sets.length }} sets</p>
+                  @if (exercise.media.length) {
+                    @for (asset of exercise.media; track asset.url) {
+                      <button
+                        class="secondary-btn"
+                        type="button"
+                        (click)="openVideoPreview(asset.title, asset.url)"
+                      >
+                        Open {{ asset.title }}
+                      </button>
+                    }
+                  }
+                </div>
               }
             </div>
           }
@@ -114,4 +185,19 @@
       }
     </div>
   </article>
+
+  @if (previewVideo(); as video) {
+    <div class="media-preview-backdrop" (click)="closeVideoPreview()">
+      <div class="media-preview-card" (click)="$event.stopPropagation()">
+        <div class="media-preview-card__header">
+          <strong>{{ video.title }}</strong>
+          <button class="ghost-btn" type="button" (click)="closeVideoPreview()">Close</button>
+        </div>
+        <video class="media-preview-player" controls autoplay [src]="video.url">
+          Your browser does not support video playback.
+        </video>
+        <a [href]="video.url" target="_blank" rel="noreferrer">Open video in a new tab</a>
+      </div>
+    </div>
+  }
 </section>

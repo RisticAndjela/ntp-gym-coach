@@ -1,4 +1,5 @@
 import { CommonModule } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { forkJoin } from 'rxjs';
@@ -104,12 +105,25 @@ export class UsersPageComponent {
       return;
     }
 
+    this.status.set('');
+    this.error.set('');
+
     this.api.createConnection({ coach_id: coachId, client_id: clientId }).subscribe({
       next: () => {
         this.status.set('Coach assigned to client.');
+        this.error.set('');
         this.load();
       },
-      error: () => this.error.set('Connection could not be created.'),
+      error: (error: HttpErrorResponse) => {
+        if (error.status === 409) {
+          this.status.set('Coach is already connected to this client.');
+          this.error.set('');
+          this.load();
+          return;
+        }
+
+        this.error.set('Connection could not be created.');
+      },
     });
   }
 

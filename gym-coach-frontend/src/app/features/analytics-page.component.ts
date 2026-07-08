@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
+import { forkJoin } from 'rxjs';
 
 import { ApiService } from '../core/api.service';
 import { AuthStore } from '../core/auth.store';
@@ -9,6 +10,7 @@ import {
   AnalyticsRequest,
   RecommendationResponse,
   TrainingSession,
+  UserProfile,
 } from '../core/models';
 import { ProgressChartComponent } from '../shared/progress-chart.component';
 
@@ -24,13 +26,18 @@ export class AnalyticsPageComponent {
   private readonly fb = inject(FormBuilder);
 
   readonly trainings = signal<TrainingSession[]>([]);
+  readonly profiles = signal<UserProfile[]>([]);
   readonly report = signal<AnalyticsReport | null>(null);
   readonly recommendation = signal<RecommendationResponse | null>(null);
   readonly error = signal('');
 
   readonly form = this.fb.nonNullable.group({
     exercise_name: ['Bench Press'],
+    progression_preference: ['progressive_overload' as const],
   });
+  readonly currentProfile = computed(
+    () => this.profiles().find((profile) => profile.id === this.authStore.userId()) ?? null,
+  );
 
   readonly exerciseNames = computed(() => {
     const names = this.trainings()
@@ -38,7 +45,7 @@ export class AnalyticsPageComponent {
       .flatMap((group) => group.exercises)
       .map((exercise) => exercise.name);
 
-    return [...new Set(names)];
+    return this.uniqueCaseInsensitive(names);
   });
 
   readonly chartData = computed(() => {
@@ -46,7 +53,7 @@ export class AnalyticsPageComponent {
     const points = this.trainings()
       .flatMap((training) => training.exercise_groups)
       .flatMap((group) => group.exercises)
-      .filter((exercise) => exercise.name === selected)
+      .filter((exercise) => this.equalsIgnoreCase(exercise.name, selected))
       .map((exercise) => ({
         label: exercise.performed_on.slice(5),
         value:
@@ -66,9 +73,13 @@ export class AnalyticsPageComponent {
       return;
     }
 
-    this.api.getClientTrainings(userId).subscribe({
-      next: (trainings) => {
+    forkJoin({
+      trainings: this.api.getClientTrainings(userId),
+      profiles: this.api.getProfiles(),
+    }).subscribe({
+      next: ({ trainings, profiles }) => {
         this.trainings.set(trainings);
+        this.profiles.set(profiles);
         if (this.exerciseNames().length) {
           this.form.patchValue({ exercise_name: this.exerciseNames()[0] });
         }
@@ -80,7 +91,7 @@ export class AnalyticsPageComponent {
 
   runAnalysis(): void {
     const userId = this.authStore.userId();
-    const exerciseName = this.form.getRawValue().exercise_name;
+    const { exercise_name: exerciseName, progression_preference } = this.form.getRawValue();
     if (!userId || !exerciseName) {
       return;
     }
@@ -88,7 +99,7 @@ export class AnalyticsPageComponent {
     const history = this.trainings()
       .flatMap((training) => training.exercise_groups)
       .flatMap((group) => group.exercises)
-      .filter((exercise) => exercise.name === exerciseName)
+      .filter((exercise) => this.equalsIgnoreCase(exercise.name, exerciseName))
       .map((exercise) => ({
         performed_on: exercise.performed_on,
         sets: exercise.sets,
@@ -97,6 +108,8 @@ export class AnalyticsPageComponent {
     const payload: AnalyticsRequest = {
       client_id: userId,
       exercise_name: exerciseName,
+      client_goals: this.currentProfile()?.goals ?? [],
+      progression_preference,
       history,
     };
 
@@ -109,5 +122,31 @@ export class AnalyticsPageComponent {
       next: (recommendation) => this.recommendation.set(recommendation),
       error: () => this.error.set('Recommendation could not be generated.'),
     });
+  }
+
+  private uniqueCaseInsensitive(values: string[]): string[] {
+    const uniqueValues = new Map<string, string>();
+
+    for (const value of values) {
+      const trimmed = value.trim();
+      if (!trimmed) {
+        continue;
+      }
+
+      const key = this.normalizeText(trimmed);
+      if (!uniqueValues.has(key)) {
+        uniqueValues.set(key, trimmed);
+      }
+    }
+
+    return [...uniqueValues.values()].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+  }
+
+  private equalsIgnoreCase(left: string, right: string): boolean {
+    return this.normalizeText(left) === this.normalizeText(right);
+  }
+
+  private normalizeText(value: string): string {
+    return value.trim().toLocaleLowerCase();
   }
 }

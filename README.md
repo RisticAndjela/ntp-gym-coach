@@ -2,6 +2,12 @@
 
 GymCoach je mikroservisna aplikacija za rad sa trenerima, klijentima, treninzima, programima i analitikom.
 
+Perzistencija:
+- `postgres` je zajednicka baza za aplikaciju
+- `auth`, `user`, `training` i `program` servisi citaju i upisuju svoje podatke direktno u PostgreSQL
+- `api-gateway` ostaje samo ulazna tacka i proxy, bez sopstvene trajne memorije
+- `analytics` je i dalje stateless servis koji racuna odgovor iz prosledjenog zahteva
+
 Servisi:
 - `gym-coach-auth` - registracija, login i JWT tokeni
 - `gym-coach-user` - profili, coach-client veze i matching po ciljevima
@@ -47,6 +53,7 @@ docker compose up --build
 ```
 
 Docker compose podize i Angular frontend na `http://localhost:4200`.
+PostgreSQL je dostupan na `localhost:5432`, a podaci ostaju sacuvani u Docker volume-u `postgres_data`.
 
 ## Demo nalozi
 
@@ -97,6 +104,8 @@ Svi endpointi osim `/api/auth/*` prolaze kroz JWT proveru u API Gateway-u.
 {
   "client_id": "22222222-2222-2222-2222-222222222222",
   "exercise_name": "Bench Press",
+  "client_goals": ["strength", "fat loss"],
+  "progression_preference": "progressive_overload",
   "history": [
     {
       "performed_on": "2026-04-10",
@@ -115,3 +124,6 @@ Svi endpointi osim `/api/auth/*` prolaze kroz JWT proveru u API Gateway-u.
   ]
 }
 ```
+
+`progression_preference` moze biti `progressive_overload` ili `stagnation`.
+Preporuka sada vraca kompletniji plan po vezbi: broj serija, ciljanu kilazu i broj ponavljanja, uzimajuci u obzir istoriju svih serija i ciljeve klijenta.

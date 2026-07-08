@@ -22,6 +22,13 @@
             }
           </select>
         </label>
+        <label>
+          <span>Progression mode</span>
+          <select formControlName="progression_preference">
+            <option value="progressive_overload">Progressive overload</option>
+            <option value="stagnation">Hold current level</option>
+          </select>
+        </label>
         <button class="primary-btn" type="submit">Refresh Analysis</button>
       </form>
     </article>
@@ -32,12 +39,20 @@
         <h2>{{ item.exercise_name }}</h2>
         <div class="metric-grid compact">
           <div class="metric-card">
+            <span>Recommended sets</span>
+            <strong>{{ item.recommended_sets }}</strong>
+          </div>
+          <div class="metric-card">
             <span>Recommended load</span>
             <strong>{{ item.recommended_load_kg }} kg</strong>
           </div>
           <div class="metric-card">
             <span>Target reps</span>
             <strong>{{ item.recommended_reps }}</strong>
+          </div>
+          <div class="metric-card">
+            <span>Goal focus</span>
+            <strong>{{ item.goal_focus }}</strong>
           </div>
         </div>
         <p>{{ item.rationale }}</p>
@@ -52,24 +67,36 @@
   <article class="glass-card">
     <p class="section-kicker">Report</p>
     @if (report(); as item) {
-      <div class="metric-grid compact">
-        <div class="metric-card">
-          <span>Sessions</span>
-          <strong>{{ item.sessions_analyzed }}</strong>
+        <div class="metric-grid compact">
+          <div class="metric-card">
+            <span>Sessions</span>
+            <strong>{{ item.sessions_analyzed }}</strong>
+          </div>
+          <div class="metric-card">
+            <span>Typical sets</span>
+            <strong>{{ item.typical_sets }}</strong>
+          </div>
+          <div class="metric-card">
+            <span>Typical load</span>
+            <strong>{{ item.typical_load_kg }} kg</strong>
+          </div>
+          <div class="metric-card">
+            <span>Typical reps</span>
+            <strong>{{ item.typical_reps }}</strong>
+          </div>
+          <div class="metric-card">
+            <span>Best load</span>
+            <strong>{{ item.best_load_kg }} kg</strong>
+          </div>
+          <div class="metric-card">
+            <span>Avg volume/session</span>
+            <strong>{{ item.avg_volume_per_session }}</strong>
+          </div>
+          <div class="metric-card">
+            <span>Trend</span>
+            <strong>{{ item.trend }}</strong>
+          </div>
         </div>
-        <div class="metric-card">
-          <span>Average load</span>
-          <strong>{{ item.avg_load_kg }} kg</strong>
-        </div>
-        <div class="metric-card">
-          <span>Best load</span>
-          <strong>{{ item.best_load_kg }} kg</strong>
-        </div>
-        <div class="metric-card">
-          <span>Trend</span>
-          <strong>{{ item.trend }}</strong>
-        </div>
-      </div>
     } @else {
       <p>Pick an exercise and generate report data.</p>
     }

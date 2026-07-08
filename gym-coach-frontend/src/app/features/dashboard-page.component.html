@@ -1,14 +1,15 @@
 <section class="page-shell">
   <div class="hero-card">
-    <div>
-      <p class="section-kicker">Overview</p>
+    <div class="hero-content">
+      <p class="section-kicker">Your dashboard</p>
       <h1>Welcome back, {{ displayName() }}</h1>
       <p class="hero-copy">
-        This dashboard aggregates user management, training tracking, read-only programs and
-        progression signals from your GymCoach backend.
+        Track your program, completed workouts, and core progress signals in one place without
+        extra clutter.
       </p>
+      <p class="hero-note">{{ nextStep() }}</p>
     </div>
-    <div class="status-chip">{{ currentProfile()?.role || 'Connected' }}</div>
+    <div class="status-chip">{{ statusSummary() }}</div>
   </div>
 
   @if (error()) {
@@ -17,40 +18,155 @@
 
   <div class="metric-grid">
     <article class="metric-card">
-      <span>Profiles</span>
-      <strong>{{ profiles().length }}</strong>
-      <p>Connected user profiles available in UserService.</p>
-    </article>
-    <article class="metric-card">
-      <span>Trainings</span>
-      <strong>{{ trainings().length }}</strong>
-      <p>Sessions currently visible through TrainingService.</p>
-    </article>
-    <article class="metric-card">
-      <span>Programs</span>
+      <span>Active program</span>
       <strong>{{ programCount() }}</strong>
-      <p>Read-only plans published for self-guided client use.</p>
+      <p>
+        @if (programTitle()) {
+          {{ programTitle() }}
+        } @else {
+          Your program will appear here when it becomes available.
+        }
+      </p>
+    </article>
+    <article class="metric-card">
+      <span>Completed workouts</span>
+      <strong>{{ completedSessions() }}</strong>
+      <p>
+        @if (completedSessions()) {
+          Your finished sessions are already showing up here.
+        } @else {
+          No completed workouts have been logged yet.
+        }
+      </p>
+    </article>
+    <article class="metric-card">
+      <span>Next up</span>
+      <strong>{{ plannedSessions() }}</strong>
+      <p>
+        @if (plannedSessions()) {
+          Planned sessions are waiting for you.
+        } @else if (skippedSessions()) {
+          You have {{ skippedSessions() }} skipped session{{ skippedSessions() === 1 ? '' : 's' }} to review.
+        } @else {
+          There are no planned sessions right now.
+        }
+      </p>
     </article>
   </div>
 
   <div class="panel-grid">
-    <app-progress-chart
-      [labels]="benchTrend().labels"
-      [values]="benchTrend().values"
-    />
+    <article class="glass-card calendar-card">
+      <div class="section-header">
+        <div>
+          <p class="section-kicker">Workout calendar</p>
+          <h2>{{ calendarMonthLabel() }}</h2>
+        </div>
+        <div class="calendar-toolbar">
+          <div class="calendar-summary">
+            <span>{{ weekSummary().completed }} completed this week</span>
+            <span>{{ weekSummary().planned }} upcoming</span>
+          </div>
+          <div class="calendar-nav">
+            <button class="calendar-nav-btn" type="button" (click)="changeMonth(-1)">
+              Previous
+            </button>
+            <button class="calendar-nav-btn" type="button" (click)="changeMonth(1)">
+              Next
+            </button>
+          </div>
+        </div>
+      </div>
 
-    <article class="glass-card">
-      <p class="section-kicker">Current Profile</p>
+      <div class="calendar-weekdays">
+        <span>Mon</span>
+        <span>Tue</span>
+        <span>Wed</span>
+        <span>Thu</span>
+        <span>Fri</span>
+        <span>Sat</span>
+        <span>Sun</span>
+      </div>
+
+      <div class="calendar-grid">
+        @for (day of calendarDays(); track day.dayKey) {
+          <button
+            class="calendar-day"
+            type="button"
+            [class.other-month]="!day.inCurrentMonth"
+            [class.is-today]="day.isToday"
+            [class.is-selected]="selectedDay().dayKey === day.dayKey"
+            [class.status-completed]="calendarStatus(day) === 'completed'"
+            [class.status-planned]="calendarStatus(day) === 'planned'"
+            [class.status-skipped]="calendarStatus(day) === 'skipped'"
+            [class.status-mixed]="calendarStatus(day) === 'mixed'"
+            (click)="selectDay(day.dayKey)"
+          >
+            <span class="day-number">{{ day.date.getDate() }}</span>
+            @if (day.trainings.length) {
+              <span class="day-count">{{ day.trainings.length }} session{{ day.trainings.length === 1 ? '' : 's' }}</span>
+            } @else {
+              <span class="day-count empty">No sessions</span>
+            }
+          </button>
+        }
+      </div>
+
+      <div class="calendar-detail">
+        @if (selectedDay(); as day) {
+          <div class="calendar-detail-header">
+            <div>
+              <p class="section-kicker">Selected day</p>
+              <h3>{{ selectedDayLabel() }}</h3>
+            </div>
+            <span class="pill">{{ day.trainings.length }} item{{ day.trainings.length === 1 ? '' : 's' }}</span>
+          </div>
+
+          @if (selectedDaySessions().length) {
+            <div class="stack-list">
+              @for (entry of selectedDaySessions(); track entry.training.id) {
+                <div class="list-card">
+                  <div class="section-header">
+                    <strong>{{ entry.training.category }}</strong>
+                    <span class="pill" [class.completed]="entry.training.status === 'COMPLETED'" [class.skipped]="entry.training.status === 'SKIPPED'">
+                      {{ trainingStatusLabel(entry.training.status) }}
+                    </span>
+                  </div>
+                  <p>{{ entry.training.notes || 'No extra notes were added for this workout.' }}</p>
+                </div>
+              }
+            </div>
+          } @else {
+            <div class="empty-state">
+              No workouts are scheduled or recorded for this day.
+            </div>
+          }
+        }
+      </div>
+    </article>
+
+    <article class="glass-card spotlight-card">
+      <p class="section-kicker">Focus</p>
       @if (currentProfile(); as profile) {
-        <h2>{{ profile.full_name }}</h2>
-        <p>{{ profile.bio }}</p>
+        <h2>{{ focusMessage() }}</h2>
+        <p>{{ profile.bio || 'Your profile is ready. Keep your routine steady and build week by week.' }}</p>
+        <div class="spotlight-points">
+          <div>
+            <span>Goals</span>
+            <strong>{{ profile.goals.length || 0 }}</strong>
+          </div>
+          <div>
+            <span>Total sessions</span>
+            <strong>{{ trainings().length }}</strong>
+          </div>
+        </div>
         <div class="tag-row">
           @for (goal of profile.goals; track goal) {
             <span>{{ goal }}</span>
           }
         </div>
       } @else {
-        <p>Profile is not yet available in the current response set.</p>
+        <h2>Your overview is ready</h2>
+        <p>Your goals and a short focus summary will appear here once the profile is available.</p>
       }
     </article>
   </div>
@@ -58,20 +174,51 @@
   <article class="glass-card">
     <div class="section-header">
       <div>
-        <p class="section-kicker">Recent Sessions</p>
-        <h2>Training timeline</h2>
+        <p class="section-kicker">Recent activity</p>
+        <h2>Your workouts</h2>
       </div>
     </div>
-    <div class="session-list">
-      @for (training of trainings(); track training.id) {
-        <div class="session-item">
-          <div>
-            <strong>{{ training.category }}</strong>
-            <p>{{ training.notes }}</p>
+    @if (recentTrainings().length) {
+      <div class="session-list">
+        @for (training of recentTrainings(); track training.id) {
+          <div class="session-item">
+            <div>
+              <strong>{{ training.category }}</strong>
+              <p>{{ training.notes || 'No extra notes were added for this session.' }}</p>
+            </div>
+            <span class="pill" [class.completed]="training.status === 'COMPLETED'" [class.skipped]="training.status === 'SKIPPED'">
+              {{ trainingStatusLabel(training.status) }}
+            </span>
           </div>
-          <span class="pill">{{ training.status }}</span>
-        </div>
-      }
+        }
+      </div>
+    } @else {
+      <div class="empty-state">
+        Your workouts will appear here as soon as they are available in the system.
+      </div>
+    }
+  </article>
+
+  <article class="glass-card guidance-card">
+    <div class="section-header">
+      <div>
+        <p class="section-kicker">Simple overview</p>
+        <h2>What you can track here</h2>
+      </div>
+    </div>
+    <div class="guidance-grid">
+      <div class="guidance-item">
+        <strong>Program</strong>
+        <p>See what has been assigned to you and follow it step by step.</p>
+      </div>
+      <div class="guidance-item">
+        <strong>Workouts</strong>
+        <p>Quickly see what is done, what is next, and where you left off.</p>
+      </div>
+      <div class="guidance-item">
+        <strong>Calendar</strong>
+        <p>View your month at a glance and open any day to see the related sessions.</p>
+      </div>
     </div>
   </article>
 </section>

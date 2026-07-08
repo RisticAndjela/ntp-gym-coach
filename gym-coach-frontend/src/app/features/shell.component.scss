@@ -1,7 +1,8 @@
 .shell-layout {
   min-height: 100vh;
-  display: grid;
-  grid-template-columns: 300px 1fr;
+  display: flex;
+  grid-template-columns: max-content minmax(0, 1fr);
+  align-items: start;
   background:
     radial-gradient(circle at 0% 0%, rgba(255, 122, 24, 0.14), transparent 26%),
     radial-gradient(circle at 100% 20%, rgba(20, 71, 230, 0.12), transparent 28%),
@@ -15,6 +16,12 @@
   display: grid;
   grid-template-rows: auto 1fr auto;
   gap: 2rem;
+  width: fit-content;
+  max-width: min(100%, 24rem);
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  overflow-y: auto;
 }
 
 .brand-kicker {
@@ -95,12 +102,21 @@
 }
 
 .content-pane {
+  min-width: 0;
   padding: 1.4rem;
 }
 
 @media (max-width: 960px) {
   .shell-layout {
     grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    width: 100%;
+    max-width: none;
+    height: auto;
+    position: static;
+    overflow-y: visible;
   }
 
   .content-pane {

@@ -86,6 +86,17 @@ export class ApiService {
     return this.http.post<TrainingSession>(`${this.baseUrl}/trainings`, payload);
   }
 
+  updateTraining(
+    trainingId: string,
+    payload: Omit<TrainingSession, 'id'>,
+  ): Observable<TrainingSession> {
+    return this.http.put<TrainingSession>(`${this.baseUrl}/trainings/${trainingId}`, payload);
+  }
+
+  deleteTraining(trainingId: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/trainings/${trainingId}`);
+  }
+
   getTrainingCatalog(): Observable<TrainingCatalog> {
     return this.http.get<TrainingCatalog>(`${this.baseUrl}/trainings/catalog`);
   }

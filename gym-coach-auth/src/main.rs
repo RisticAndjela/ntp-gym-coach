@@ -9,12 +9,14 @@ use chrono::{Duration, Utc};
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::{collections::HashMap, env, net::SocketAddr, sync::Arc};
-use tokio::sync::Mutex;
+use std::{env, net::SocketAddr, sync::Arc};
+use tokio::time::{sleep, Duration as TokioDuration};
+use tokio_postgres::{Client, NoTls, Row};
 use uuid::Uuid;
 
 const AUTH_PORT: u16 = 8081;
 const JWT_SECRET: &str = "gym-coach-super-secret";
+const DEFAULT_DATABASE_URL: &str = "postgres://gymcoach:gymcoach@127.0.0.1:5432/gymcoach";
 const DEMO_COACH_ID: &str = "11111111-1111-1111-1111-111111111111";
 const DEMO_CLIENT_ID: &str = "22222222-2222-2222-2222-222222222222";
 
@@ -23,6 +25,23 @@ const DEMO_CLIENT_ID: &str = "22222222-2222-2222-2222-222222222222";
 enum UserRole {
     Coach,
     Client,
+}
+
+impl UserRole {
+    fn as_db_value(&self) -> &'static str {
+        match self {
+            Self::Coach => "COACH",
+            Self::Client => "CLIENT",
+        }
+    }
+
+    fn from_db_value(value: &str) -> Option<Self> {
+        match value {
+            "COACH" => Some(Self::Coach),
+            "CLIENT" => Some(Self::Client),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -80,14 +99,15 @@ struct ServiceStatus {
 
 #[derive(Clone)]
 struct AppState {
-    users: Arc<Mutex<HashMap<String, UserAccount>>>,
+    db: Arc<Client>,
 }
 
 #[tokio::main]
 async fn main() {
-    let state = AppState {
-        users: Arc::new(Mutex::new(seed_users())),
-    };
+    let db = Arc::new(connect_db().await);
+    init_db(db.as_ref()).await.unwrap();
+
+    let state = AppState { db };
 
     let app = Router::new()
         .route("/health", get(health))
@@ -105,6 +125,68 @@ async fn main() {
         .unwrap();
 }
 
+async fn connect_db() -> Client {
+    let database_url =
+        env::var("DATABASE_URL").unwrap_or_else(|_| DEFAULT_DATABASE_URL.to_string());
+
+    for attempt in 1..=20 {
+        match tokio_postgres::connect(&database_url, NoTls).await {
+            Ok((client, connection)) => {
+                tokio::spawn(async move {
+                    if let Err(error) = connection.await {
+                        eprintln!("Auth DB connection error: {error}");
+                    }
+                });
+                return client;
+            }
+            Err(error) if attempt < 20 => {
+                eprintln!("Auth DB connect attempt {attempt} failed: {error}");
+                sleep(TokioDuration::from_secs(2)).await;
+            }
+            Err(error) => panic!("Auth DB connection failed: {error}"),
+        }
+    }
+
+    unreachable!()
+}
+
+async fn init_db(db: &Client) -> Result<(), tokio_postgres::Error> {
+    db.batch_execute(
+        "
+        CREATE TABLE IF NOT EXISTS auth_users (
+            id UUID PRIMARY KEY,
+            full_name TEXT NOT NULL,
+            email TEXT NOT NULL UNIQUE,
+            password_hash TEXT NOT NULL,
+            role TEXT NOT NULL,
+            created_at TIMESTAMPTZ NOT NULL
+        );
+        ",
+    )
+    .await?;
+
+    for user in seed_users() {
+        db.execute(
+            "
+            INSERT INTO auth_users (id, full_name, email, password_hash, role, created_at)
+            VALUES ($1, $2, $3, $4, $5, $6)
+            ON CONFLICT (email) DO NOTHING
+            ",
+            &[
+                &user.id,
+                &user.full_name,
+                &user.email,
+                &user.password_hash,
+                &user.role.as_db_value(),
+                &user.created_at,
+            ],
+        )
+        .await?;
+    }
+
+    Ok(())
+}
+
 async fn health() -> Json<ServiceStatus> {
     Json(ServiceStatus {
         status: "UP".into(),
@@ -116,10 +198,14 @@ async fn register(
     State(state): State<AppState>,
     Json(payload): Json<RegisterRequest>,
 ) -> Result<(StatusCode, Json<AuthResponse>), (StatusCode, Json<serde_json::Value>)> {
-    let mut users = state.users.lock().await;
     let email = payload.email.trim().to_lowercase();
+    let existing = state
+        .db
+        .query_opt("SELECT 1 FROM auth_users WHERE email = $1", &[&email])
+        .await
+        .map_err(db_error)?;
 
-    if users.contains_key(&email) {
+    if existing.is_some() {
         return Err(error(
             StatusCode::CONFLICT,
             "User with this email already exists",
@@ -135,13 +221,31 @@ async fn register(
         created_at: Utc::now(),
     };
 
+    state
+        .db
+        .execute(
+            "
+            INSERT INTO auth_users (id, full_name, email, password_hash, role, created_at)
+            VALUES ($1, $2, $3, $4, $5, $6)
+            ",
+            &[
+                &account.id,
+                &account.full_name,
+                &account.email,
+                &account.password_hash,
+                &account.role.as_db_value(),
+                &account.created_at,
+            ],
+        )
+        .await
+        .map_err(db_error)?;
+
     let token = token_for(&account).map_err(internal_error)?;
     let response = AuthResponse {
         token,
         user: public_user(&account),
     };
 
-    users.insert(email, account);
     Ok((StatusCode::CREATED, Json(response)))
 }
 
@@ -149,20 +253,31 @@ async fn login(
     State(state): State<AppState>,
     Json(payload): Json<LoginRequest>,
 ) -> Result<Json<AuthResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let users = state.users.lock().await;
     let email = payload.email.trim().to_lowercase();
-    let account = users
-        .get(&email)
+    let row = state
+        .db
+        .query_opt(
+            "
+            SELECT id, full_name, email, password_hash, role, created_at
+            FROM auth_users
+            WHERE email = $1
+            ",
+            &[&email],
+        )
+        .await
+        .map_err(db_error)?
         .ok_or_else(|| error(StatusCode::UNAUTHORIZED, "Invalid credentials"))?;
+
+    let account = user_from_row(&row).map_err(internal_state_error)?;
 
     if account.password_hash != hash_password(&payload.password) {
         return Err(error(StatusCode::UNAUTHORIZED, "Invalid credentials"));
     }
 
-    let token = token_for(account).map_err(internal_error)?;
+    let token = token_for(&account).map_err(internal_error)?;
     Ok(Json(AuthResponse {
         token,
-        user: public_user(account),
+        user: public_user(&account),
     }))
 }
 
@@ -171,7 +286,8 @@ async fn me(headers: HeaderMap) -> impl IntoResponse {
         return Err(error(StatusCode::UNAUTHORIZED, "Missing bearer token"));
     };
 
-    let claims = decode_claims(token).map_err(|_| error(StatusCode::UNAUTHORIZED, "Invalid token"))?;
+    let claims =
+        decode_claims(token).map_err(|_| error(StatusCode::UNAUTHORIZED, "Invalid token"))?;
     Ok(Json(claims))
 }
 
@@ -221,28 +337,37 @@ fn hash_password(password: &str) -> String {
     format!("{:x}", hasher.finalize())
 }
 
-fn seed_users() -> HashMap<String, UserAccount> {
-    let coach = UserAccount {
-        id: Uuid::parse_str(DEMO_COACH_ID).unwrap(),
-        full_name: "Mina Coach".into(),
-        email: "coach@gymcoach.rs".into(),
-        password_hash: hash_password("coach123"),
-        role: UserRole::Coach,
-        created_at: Utc::now(),
-    };
-    let client = UserAccount {
-        id: Uuid::parse_str(DEMO_CLIENT_ID).unwrap(),
-        full_name: "Nikola Client".into(),
-        email: "client@gymcoach.rs".into(),
-        password_hash: hash_password("client123"),
-        role: UserRole::Client,
-        created_at: Utc::now(),
-    };
+fn seed_users() -> Vec<UserAccount> {
+    vec![
+        UserAccount {
+            id: Uuid::parse_str(DEMO_COACH_ID).unwrap(),
+            full_name: "Mina Coach".into(),
+            email: "coach@gymcoach.rs".into(),
+            password_hash: hash_password("coach123"),
+            role: UserRole::Coach,
+            created_at: Utc::now(),
+        },
+        UserAccount {
+            id: Uuid::parse_str(DEMO_CLIENT_ID).unwrap(),
+            full_name: "Nikola Client".into(),
+            email: "client@gymcoach.rs".into(),
+            password_hash: hash_password("client123"),
+            role: UserRole::Client,
+            created_at: Utc::now(),
+        },
+    ]
+}
 
-    HashMap::from([
-        (coach.email.clone(), coach),
-        (client.email.clone(), client),
-    ])
+fn user_from_row(row: &Row) -> Result<UserAccount, String> {
+    let role: String = row.get("role");
+    Ok(UserAccount {
+        id: row.get("id"),
+        full_name: row.get("full_name"),
+        email: row.get("email"),
+        password_hash: row.get("password_hash"),
+        role: UserRole::from_db_value(&role).ok_or_else(|| format!("Unknown role: {role}"))?,
+        created_at: row.get("created_at"),
+    })
 }
 
 fn error(status: StatusCode, message: &str) -> (StatusCode, Json<serde_json::Value>) {
@@ -256,4 +381,12 @@ fn error(status: StatusCode, message: &str) -> (StatusCode, Json<serde_json::Val
 
 fn internal_error(_: jsonwebtoken::errors::Error) -> (StatusCode, Json<serde_json::Value>) {
     error(StatusCode::INTERNAL_SERVER_ERROR, "Failed to issue token")
+}
+
+fn db_error(_: tokio_postgres::Error) -> (StatusCode, Json<serde_json::Value>) {
+    error(StatusCode::INTERNAL_SERVER_ERROR, "Database operation failed")
+}
+
+fn internal_state_error(message: String) -> (StatusCode, Json<serde_json::Value>) {
+    error(StatusCode::INTERNAL_SERVER_ERROR, &message)
 }

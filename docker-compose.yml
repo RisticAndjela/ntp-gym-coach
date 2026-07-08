@@ -1,10 +1,31 @@
 services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: gymcoach
+      POSTGRES_USER: gymcoach
+      POSTGRES_PASSWORD: gymcoach
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gymcoach -d gymcoach"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    ports:
+      - "5432:5432"
+
   auth:
     build:
       context: .
       args:
         SERVICE: auth
         BIN: auth
+    environment:
+      DATABASE_URL: postgres://gymcoach:gymcoach@postgres:5432/gymcoach
+    depends_on:
+      postgres:
+        condition: service_healthy
     ports:
       - "8081:8081"
 
@@ -14,6 +35,11 @@ services:
       args:
         SERVICE: ntp-gym-coach-user
         BIN: ntp-gym-coach-user
+    environment:
+      DATABASE_URL: postgres://gymcoach:gymcoach@postgres:5432/gymcoach
+    depends_on:
+      postgres:
+        condition: service_healthy
     ports:
       - "8082:8082"
 
@@ -23,6 +49,11 @@ services:
       args:
         SERVICE: training
         BIN: training
+    environment:
+      DATABASE_URL: postgres://gymcoach:gymcoach@postgres:5432/gymcoach
+    depends_on:
+      postgres:
+        condition: service_healthy
     ports:
       - "8083:8083"
 
@@ -32,6 +63,11 @@ services:
       args:
         SERVICE: program
         BIN: program
+    environment:
+      DATABASE_URL: postgres://gymcoach:gymcoach@postgres:5432/gymcoach
+    depends_on:
+      postgres:
+        condition: service_healthy
     ports:
       - "8084:8084"
 
@@ -72,3 +108,6 @@ services:
       - gateway
     ports:
       - "4200:80"
+
+volumes:
+  postgres_data:

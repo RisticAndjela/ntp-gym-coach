@@ -30,9 +30,16 @@
 
     <article class="glass-card detail-card">
       @if (selectedProgram(); as program) {
-        <p class="section-kicker">Program Detail</p>
-        <h2>{{ program.title }}</h2>
-        <p>{{ program.goal }}</p>
+        <div class="program-detail-header">
+          <div>
+            <p class="section-kicker">Program Detail</p>
+            <h2>{{ program.title }}</h2>
+            <p>{{ program.goal }}</p>
+          </div>
+          <button class="export-btn" type="button" (click)="downloadProgramPdf(program)">
+            Download PDF
+          </button>
+        </div>
         @for (week of program.weeks; track week.week) {
           <section class="week-block">
             <h3>Week {{ week.week }}</h3>
@@ -40,9 +47,24 @@
               <div class="day-card">
                 <strong>Day {{ day.day }} · {{ day.title }}</strong>
                 @for (exercise of day.exercises; track exercise.name) {
-                  <div class="exercise-line">
-                    <span>{{ exercise.name }}</span>
-                    <span>{{ exercise.sets }} x {{ exercise.reps }}</span>
+                  <div class="exercise-line exercise-line--stacked">
+                    <div class="exercise-line__summary">
+                      <span>{{ exercise.name }}</span>
+                      <span>{{ exercise.sets }} x {{ exercise.reps }}</span>
+                    </div>
+                    @if (exercise.media.length) {
+                      <div class="media-row">
+                        @for (asset of exercise.media; track asset.url) {
+                          <button
+                            class="secondary-btn"
+                            type="button"
+                            (click)="openMediaPreview(asset)"
+                          >
+                            Open {{ asset.title }}
+                          </button>
+                        }
+                      </div>
+                    }
                   </div>
                 }
               </div>
@@ -54,4 +76,19 @@
       }
     </article>
   </div>
+
+  @if (previewMedia(); as media) {
+    <div class="media-preview-backdrop" (click)="closeMediaPreview()">
+      <div class="media-preview-card" (click)="$event.stopPropagation()">
+        <div class="media-preview-card__header">
+          <strong>{{ media.title }}</strong>
+          <button class="ghost-btn" type="button" (click)="closeMediaPreview()">Close</button>
+        </div>
+        <video class="media-preview-player" controls autoplay [src]="media.url">
+          Your browser does not support video playback.
+        </video>
+        <a [href]="media.url" target="_blank" rel="noreferrer">Open video in a new tab</a>
+      </div>
+    </div>
+  }
 </section>

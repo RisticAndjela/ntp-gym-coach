@@ -55,6 +55,7 @@ export interface Exercise {
   exercise_type: string;
   performed_on: string;
   sets: TrainingSet[];
+  media: MediaAsset[];
 }
 
 export interface ExerciseGroup {
@@ -112,6 +113,8 @@ export interface TrainingProgram {
 export interface AnalyticsRequest {
   client_id: string;
   exercise_name: string;
+  client_goals?: string[];
+  progression_preference?: 'stagnation' | 'progressive_overload';
   history: Array<{
     performed_on: string;
     sets: TrainingSet[];
@@ -126,12 +129,22 @@ export interface AnalyticsReport {
   avg_reps: number;
   best_load_kg: number;
   total_volume: number;
+  avg_sets_per_session: number;
+  avg_volume_per_session: number;
+  typical_sets: number;
+  typical_reps: number;
+  typical_load_kg: number;
+  goal_focus: string;
+  progression_preference: string;
   trend: string;
 }
 
 export interface RecommendationResponse {
   exercise_name: string;
+  recommended_sets: number;
   recommended_load_kg: number;
   recommended_reps: number;
+  goal_focus: string;
+  progression_preference: string;
   rationale: string;
 }
