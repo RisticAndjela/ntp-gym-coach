@@ -1,32 +1,60 @@
 <div class="chart-card">
   <div class="chart-header">
-    <div>
+    <div class="chart-heading">
       <p class="eyebrow">Progress Curve</p>
       <h3>{{ metricTitle() }} by day</h3>
+      <p class="chart-subtitle">History, latest session, and next recommended target in one view.</p>
     </div>
 
     @if (model(); as chart) {
       <div class="chart-summary">
-        <span>{{ chart.sessionsCount }} session{{ chart.sessionsCount === 1 ? '' : 's' }}</span>
-        <span>Current {{ chart.currentValue }}</span>
-        <span>{{ chart.recommendationValue ? `Target ${chart.recommendationValue}` : 'Target pending' }}</span>
-        <span>Peak {{ chart.peakValue }}</span>
+        <span class="summary-pill">
+          <strong>{{ chart.sessionsCount }}</strong>
+          <em>session{{ chart.sessionsCount === 1 ? '' : 's' }}</em>
+        </span>
+        <span class="summary-pill">
+          <strong>Current</strong>
+          <em>{{ chart.currentValue }}</em>
+        </span>
+        <span class="summary-pill">
+          <strong>Target</strong>
+          <em>{{ chart.recommendationValue ?? 'Pending' }}</em>
+        </span>
+        <span class="summary-pill">
+          <strong>Peak</strong>
+          <em>{{ chart.peakValue }}</em>
+        </span>
       </div>
     }
   </div>
 
   @if (model(); as chart) {
     <div class="visual-shell">
-      <div class="axis-title axis-title-y">{{ metricTitle() }}{{ metricUnit() ? ' (' + metricUnit() + ')' : '' }}</div>
-      <div class="axis-title axis-title-x">Days</div>
+      <div class="chart-meta">
+        <span class="axis-title axis-title-y">{{ metricTitle() }}{{ metricUnit() ? ' (' + metricUnit() + ')' : '' }}</span>
+        <span class="axis-title axis-title-x">Days</span>
+      </div>
 
-      <svg class="chart" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+      <svg class="chart" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
         <defs>
           <linearGradient id="historyCurve" x1="0%" y1="0%" x2="100%" y2="0%">
             <stop offset="0%" stop-color="#f97316" />
-            <stop offset="100%" stop-color="#7c3aed" />
+            <stop offset="100%" stop-color="#2563eb" />
+          </linearGradient>
+          <linearGradient id="historyArea" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="rgba(249, 115, 22, 0.22)" />
+            <stop offset="100%" stop-color="rgba(37, 99, 235, 0.02)" />
           </linearGradient>
         </defs>
+
+        <rect
+          class="plot-panel"
+          [attr.x]="chart.left"
+          [attr.y]="chart.top"
+          [attr.width]="chart.plotWidth"
+          [attr.height]="chart.plotHeight"
+          rx="5"
+        />
 
         @for (tick of chart.yTicks; track tick.value) {
           <line class="grid-line" [attr.x1]="chart.left" [attr.y1]="tick.y" [attr.x2]="chart.right" [attr.y2]="tick.y" />
@@ -39,6 +67,10 @@
           <text class="y-tick" [attr.x]="chart.left - 1.6" [attr.y]="tick.y + 1">{{ tick.value }}</text>
         }
 
+        @if (chart.historyAreaPath) {
+          <path class="history-area" [attr.d]="chart.historyAreaPath" />
+        }
+
         @if (chart.historyPath) {
           <path class="history-path" [attr.d]="chart.historyPath" />
         }
@@ -47,7 +79,7 @@
           <path class="projection-path" [attr.d]="chart.projectionPath" />
         }
 
-        @for (point of chart.historyPoints; track point.label) {
+        @for (point of chart.historyPoints; track point.key) {
           <circle
             class="node node-history"
             [class.node-current]="point.isCurrent"
@@ -58,6 +90,7 @@
         }
 
         @if (chart.recommendationPoint; as point) {
+          <circle class="node node-recommendation node-recommendation-halo" [attr.cx]="point.x" [attr.cy]="point.y" r="4.2" />
           <circle class="node node-recommendation" [attr.cx]="point.x" [attr.cy]="point.y" r="3.1" />
         }
 
@@ -71,9 +104,10 @@
     </div>
 
     <div class="chart-legend">
-      <span><i class="legend-dot legend-history"></i>History</span>
-      <span><i class="legend-dot legend-current"></i>Current</span>
-      <span><i class="legend-dot legend-target"></i>Recommendation</span>
+      <span><i class="legend-swatch legend-history"></i>History</span>
+      <span><i class="legend-swatch legend-current"></i>Current</span>
+      <span><i class="legend-swatch legend-target"></i>Recommendation</span>
+      <span class="legend-note">The dashed segment connects the latest result to the recommended next target.</span>
     </div>
   } @else {
     <div class="empty-chart">No exercise history yet.</div>
